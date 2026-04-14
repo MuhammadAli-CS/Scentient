@@ -5,13 +5,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import joblib
 
-def train_model(features_csv, labels_csv, model_path="models/odor_model.pkl"):
+def train_model(final_dataset_csv, model_path="models/odor_model.pkl", encoder_path="models/label_encoder.pkl"):
     # Load data
-    features = pd.read_csv(features_csv)
-    labels = pd.read_csv(labels_csv)
-
-    # Merge on 'name'
-    df = pd.merge(features, labels, on='name')
+    df = pd.read_csv(final_dataset_csv)
 
     # Separate X, y
     X = df.drop(columns=['name', 'odor'])
@@ -35,12 +31,12 @@ def train_model(features_csv, labels_csv, model_path="models/odor_model.pkl"):
     acc = accuracy_score(y_test, y_pred)
     print(f"✅ Accuracy: {acc:.4f}")
     print("\nClassification Report:\n", classification_report(y_test, y_pred, target_names=le.classes_))
-    print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+    # print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
 
     # Save model & encoder
     joblib.dump(model, model_path)
-    joblib.dump(le, "models/label_encoder.pkl")
-    print(f"✅ Model saved to {model_path}, encoder saved to models/label_encoder.pkl")
+    joblib.dump(le, encoder_path)
+    print(f"✅ Model saved to {model_path}, encoder saved to {encoder_path}")
 
 if __name__ == "__main__":
-    train_model("../data/top_features.csv", "../data/odor_labels.csv")
+    train_model("data/final_dataset.csv")

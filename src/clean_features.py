@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import logging
 from sklearn.preprocessing import StandardScaler
+import joblib
+import json
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -39,9 +41,16 @@ def clean_features(input_csv, output_csv, corr_threshold=0.95):
             logging.info(f"Dropping {len(to_drop)} highly correlated features")
         df = df.drop(columns=to_drop)
 
+    # Save retained columns
+    kept_columns = df.columns.tolist()
+    with open('models/clean_columns.json', 'w') as f:
+        json.dump(kept_columns, f)
+
     # Scale features
     scaler = StandardScaler()
     scaled_features = scaler.fit_transform(df)
+    joblib.dump(scaler, 'models/scaler.pkl')
+    
     df = pd.DataFrame(scaled_features, columns=df.columns)
 
     # Add names back

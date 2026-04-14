@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.preprocessing import LabelEncoder
 import logging
+import json
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -37,6 +38,9 @@ def select_top_features(features_csv, labels_csv, output_csv, importance_csv, to
     # Select top N features
     top_features = feature_ranking.head(top_n)['feature'].tolist()
     logging.info(f"Selected top {len(top_features)} features based on mutual information.")
+
+    with open('models/top_features.json', 'w') as f:
+        json.dump(top_features, f)
 
     # Filter original data
     final_df = df[['name', 'odor'] + top_features]
