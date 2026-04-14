@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
-from rapidfuzz import fuzz
-from collections import Counter
 import logging
+from collections import Counter
+try:
+    from rapidfuzz import process, fuzz
+except ImportError:
+    pass # Let it fail gracefully if someone tries without rapidfuzz
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -18,6 +21,8 @@ SYNONYMS = {
     "mandarin orange": "mandarin", "tangerine": "mandarin", "orange blossom absolute": "orange blossom",
     "pink peppercorn": "pink pepper", "pepper essence": "pepper"
 }
+
+DUPE_BRANDS = ["lattafa", "armaf", "afnan", "fragrance world", "maison alhambra", "zara", "paris corner"]
 
 class DupeFinder:
     def __init__(self, data_path="data/fragrantica_cleaned.csv"):
@@ -35,7 +40,7 @@ class DupeFinder:
         for note in note_list:
             note_clean = note.strip().lower()
             normalized.append(SYNONYMS.get(note_clean, note_clean))
-        return normalized
+        return list(set(normalized)) # Remove duplicates within layer
 
     def _prepare_data(self):
         logging.info("Preprocessing notes and accords...")
@@ -56,82 +61,114 @@ class DupeFinder:
         
         freq = Counter(all_notes)
         max_freq = max(freq.values())
+        # Use log scale so super rare notes don't completely dominate the result, but still matter heavily
         self.rarity_weights = {note: np.log(1 + (max_freq / count)) for note, count in freq.items()}
-        self.all_unique_notes = sorted(set(all_notes))
         
         # Search key
         self.df['SearchKey'] = (self.df['Brand'].str.lower() + " " + self.df['Perfume'].str.lower().str.replace("-", " "))
 
-    def _build_note_vector(self, notes_dict):
-        vec = np.zeros(len(self.all_unique_notes))
-        for layer in notes_dict.values():
-            for note in layer:
-                if note in self.all_unique_notes:
-                    idx = self.all_unique_notes.index(note)
-                    vec[idx] += self.rarity_weights.get(note, 1.0)
-        return vec
-
-    def _calculate_similarity(self, vec_a, vec_b, accords_a, accords_b, brand_match, year_match):
-        from sklearn.metrics.pairwise import cosine_similarity
-        note_sim = cosine_similarity([vec_a], [vec_b])[0][0]
+    def _calculate_cross_layer_sim(self, notes_a, notes_b):
+        """
+        Calculates similarity with cross-layer penalties.
+        Matches in the exact same layer (top-top) = 1.0 weight
+        Matches across layers (top-base) = 0.6 weight
+        """
+        score = 0
+        max_score = 0
+        cross_penalty = 0.6
         
-        union_accords = len(set(accords_a) | set(accords_b))
-        accord_overlap = len(set(accords_a) & set(accords_b)) / max(union_accords, 1)
+        # Get unique sets of all notes present
+        all_notes_a = set(notes_a['top'] + notes_a['mid'] + notes_a['base'])
+        all_notes_b = set(notes_b['top'] + notes_b['mid'] + notes_b['base'])
+        
+        for note in all_notes_a:
+            w = self.rarity_weights.get(note, 1.0)
+            max_score += w
+            
+            if note in all_notes_b:
+                # Find best matching layer
+                best_match = 0
+                for layer in ['top', 'mid', 'base']:
+                    if note in notes_a[layer]:
+                        if note in notes_b[layer]:
+                            best_match = max(best_match, 1.0)
+                        elif note in all_notes_b:
+                            best_match = max(best_match, cross_penalty)
+                score += w * best_match
 
-        score = (note_sim * 0.7) + (accord_overlap * 0.2)
-        if brand_match: score += 0.05
-        if year_match: score += 0.05
-        return min(score * 100, 100)
+        # Add remaining notes in B to max_score as penalty for missing notes
+        for note in all_notes_b:
+            if note not in all_notes_a:
+                max_score += self.rarity_weights.get(note, 1.0)
+                
+        return score / max_score if max_score > 0 else 0
 
-    def find_dupes(self, query, top_n=10, gender_filter=None):
+    def _calculate_accord_sim(self, accords_a, accords_b):
+        if not accords_a or not accords_b:
+            return 0
+        union = len(set(accords_a) | set(accords_b))
+        return len(set(accords_a) & set(accords_b)) / union if union > 0 else 0
+
+    def find_dupes(self, query, top_n=10, note_weight=0.75, accord_weight=0.25):
         query_norm = str(query).lower().replace("-", " ")
         
         # RapidFuzz match
-        from rapidfuzz import process
         matches = process.extract(query_norm, self.df['SearchKey'].tolist(), limit=1, scorer=fuzz.token_set_ratio)
         if not matches:
             logging.warning(f"No match found for query: {query}")
             return None
             
         best_match_key = matches[0][0]
-        score = matches[0][1]
+        confidence = matches[0][1]
         
         idx = self.df[self.df['SearchKey'] == best_match_key].index[0]
         base = self.df.iloc[idx]
         
-        logging.info(f"Matched input to: {base['Perfume']} by {base['Brand']} (Confidence: {score:.1f}%)")
+        logging.info(f"Matched input to: {base['Perfume']} by {base['Brand']} (Confidence: {confidence:.1f}%)")
 
         notes_a = {'top': base['Top'], 'mid': base['Middle'], 'base': base['Base']}
         accords_a = base['Accords']
-        vec_a = self._build_note_vector(notes_a)
 
         results = []
         for i, row in self.df.iterrows():
             if i == idx:
                 continue
-            if gender_filter and str(row['Gender']).lower() != gender_filter.lower():
-                continue
                 
             notes_b = {'top': row['Top'], 'mid': row['Middle'], 'base': row['Base']}
             accords_b = row['Accords']
-            vec_b = self._build_note_vector(notes_b)
             
-            brand_match = (str(row['Brand']).strip().lower() == str(base['Brand']).strip().lower())
-            year_match = (row['Year'] == base['Year'])
+            note_sim = self._calculate_cross_layer_sim(notes_a, notes_b)
+            accord_sim = self._calculate_accord_sim(accords_a, accords_b)
             
-            sim_score = self._calculate_similarity(vec_a, vec_b, accords_a, accords_b, brand_match, year_match)
+            # Base similarity
+            sim_score = (note_sim * note_weight) + (accord_sim * accord_weight)
+            
+            # Post-processing heuristics
+            brand_a = str(base['Brand']).strip().lower()
+            brand_b = str(row['Brand']).strip().lower()
+            
+            # 1. Flanker Penalty
+            if brand_b == brand_a:
+                sim_score *= 0.9  
+            # 2. Clone House Boost
+            elif brand_b in DUPE_BRANDS:
+                sim_score *= 1.08 
+            
+            # 3. Gender Alignment
+            if row['Gender'] == base['Gender']:
+                sim_score *= 1.05
             
             results.append({
                 'Perfume': row['Perfume'],
                 'Brand': row['Brand'],
                 'Year': row['Year'],
                 'Gender': row['Gender'],
-                'Similarity': round(sim_score, 2),
+                'Similarity (%)': round(min(sim_score * 100, 100), 2),
                 'Rating Value': row['Rating Value'],
                 'url': row['url']
             })
 
-        results.sort(key=lambda x: x['Similarity'], reverse=True)
+        results.sort(key=lambda x: x['Similarity (%)'], reverse=True)
         return pd.DataFrame(results[:top_n])
 
 if __name__ == "__main__":
@@ -142,6 +179,6 @@ if __name__ == "__main__":
         dupes = finder.find_dupes(query)
         if dupes is not None:
             print(f"\nTop matches for '{query}':\n")
-            print(dupes.to_string(index=False))
+            print(dupes[['Perfume', 'Brand', 'Similarity (%)', 'Rating Value', 'Gender']].to_string(index=False))
     else:
         print("Usage: python dupe_finder.py <perfume_name>")
