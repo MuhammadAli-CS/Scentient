@@ -28,6 +28,11 @@ class DupeFinder:
     def __init__(self, data_path="data/fragrantica_cleaned.csv"):
         logging.info(f"Loading fragrance dataset from {data_path}")
         self.df = pd.read_csv(data_path, sep=';')
+        if 'Rating Value' in self.df.columns:
+            self.df['Rating Value'] = pd.to_numeric(
+                self.df['Rating Value'].astype(str).str.replace(',', '.'), 
+                errors='coerce'
+            ).fillna(0.0)
         self._prepare_data()
 
     def _clean_and_split(self, text):

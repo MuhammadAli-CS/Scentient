@@ -47,4 +47,4 @@ def select_top_features(features_csv, labels_csv, output_csv, importance_csv, to
 
     # Save to CSV
     final_df.to_csv(output_csv, index=False)
-    logging.info(f"✅ Final dataset saved to {output_csv}. Shape: {final_df.shape}")
+    logging.info(f"[SUCCESS] Final dataset saved to {output_csv}. Shape: {final_df.shape}")

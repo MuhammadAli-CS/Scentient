@@ -29,14 +29,14 @@ def train_model(final_dataset_csv, model_path="models/odor_model.pkl", encoder_p
 
     # Evaluation
     acc = accuracy_score(y_test, y_pred)
-    print(f"✅ Accuracy: {acc:.4f}")
-    print("\nClassification Report:\n", classification_report(y_test, y_pred, target_names=le.classes_))
+    print(f"[SUCCESS] Accuracy: {acc:.4f}")
+    print("\nClassification Report:\n", classification_report(y_test, y_pred, labels=range(len(le.classes_)), target_names=le.classes_, zero_division=0))
     # print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
 
     # Save model & encoder
     joblib.dump(model, model_path)
     joblib.dump(le, encoder_path)
-    print(f"✅ Model saved to {model_path}, encoder saved to {encoder_path}")
+    print(f"[SUCCESS] Model saved to {model_path}, encoder saved to {encoder_path}")
 
 if __name__ == "__main__":
     train_model("data/final_dataset.csv")
