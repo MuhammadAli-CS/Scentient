@@ -17,13 +17,13 @@ from train_model import train_model
 
 # Page config
 st.set_page_config(
-    page_title="Scentient - AI Fragrance Platform",
+    page_title="Scentient - Molecular Olfaction Platform",
     page_icon="🧪",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom premium CSS styling (luxury gold/obsidian theme, custom fonts, overrides)
+# Custom premium CSS styling (ultra-minimalist luxury Gold & Obsidian theme)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
@@ -34,157 +34,125 @@ st.markdown("""
     }
     h1, h2, h3, h4, h5, h6, .brand-title, .main-title {
         font-family: 'Cormorant Garamond', serif;
-        font-weight: 600;
+        font-weight: 500;
         letter-spacing: -0.5px;
     }
     .sub-title, .section-title, .widget-title {
         font-family: 'Outfit', sans-serif;
         font-weight: 500;
-        letter-spacing: 0.5px;
+        letter-spacing: 1px;
     }
     
-    /* Elegant Dark Obsidian Background */
+    /* Deep Obsidian Black Matte Background */
     .stApp {
-        background: #06050a;
-        color: #e2e8f0;
+        background: #050507;
+        color: #a1a1b5;
     }
     
-    /* Floating Ambient Glow Orbs */
-    .ambient-glow-1 {
-        position: fixed;
-        top: -15%;
-        left: -15%;
-        width: 50vw;
-        height: 50vh;
-        background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, rgba(139, 92, 246, 0.02) 50%, rgba(0,0,0,0) 80%);
-        z-index: -1;
-        filter: blur(100px);
-        pointer-events: none;
-        animation: pulseGlow1 15s ease-in-out infinite alternate;
-    }
-    .ambient-glow-2 {
-        position: fixed;
-        bottom: -15%;
-        right: -15%;
-        width: 55vw;
-        height: 55vh;
-        background: radial-gradient(circle, rgba(244, 63, 94, 0.03) 0%, rgba(212, 175, 55, 0.02) 50%, rgba(0,0,0,0) 80%);
-        z-index: -1;
-        filter: blur(120px);
-        pointer-events: none;
-        animation: pulseGlow2 20s ease-in-out infinite alternate;
-    }
-    @keyframes pulseGlow1 {
-        0% { transform: scale(1) translate(0px, 0px); }
-        100% { transform: scale(1.15) translate(40px, -30px); }
-    }
-    @keyframes pulseGlow2 {
-        0% { transform: scale(1) translate(0px, 0px); }
-        100% { transform: scale(1.1) translate(-40px, 30px); }
-    }
-
-    /* Streamlit UI Custom Styling Overrides */
-    /* Sidebar styling */
+    /* Sidebar Overhaul: Ultra-Clean luxury Menu */
     section[data-testid="stSidebar"] {
-        background-color: #030305 !important;
-        border-right: 1px solid rgba(212, 175, 55, 0.08) !important;
+        background-color: #030304 !important;
+        border-right: 1px solid #111115 !important;
     }
     section[data-testid="stSidebar"] hr {
-        border-color: rgba(212, 175, 55, 0.08) !important;
+        border-color: #111115 !important;
     }
     
-    /* Navigation Radio Items as Custom Buttons */
+    /* Navigation Radio Items - Clean Minimal Links */
     div[data-testid="stSidebar"] div.stRadio > div {
         background-color: transparent !important;
         padding: 5px !important;
     }
     div[data-testid="stSidebar"] div.stRadio label {
-        background: rgba(255, 255, 255, 0.01) !important;
-        border: 1px solid rgba(255, 255, 255, 0.03) !important;
-        border-radius: 12px !important;
-        padding: 12px 16px !important;
-        margin-bottom: 10px !important;
-        color: #94a3b8 !important;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0px !important;
+        padding: 10px 0px 10px 15px !important;
+        margin-bottom: 12px !important;
+        color: #717188 !important;
+        transition: all 0.3s ease !important;
         width: 100% !important;
         display: flex !important;
         align-items: center !important;
         cursor: pointer !important;
+        border-left: 1px solid transparent !important;
     }
     div[data-testid="stSidebar"] div.stRadio label:hover {
-        background: rgba(212, 175, 55, 0.05) !important;
-        border-color: rgba(212, 175, 55, 0.2) !important;
-        color: #f3d060 !important;
-        transform: translateX(4px) !important;
+        color: #e2e8f0 !important;
+        padding-left: 20px !important;
     }
     div[data-testid="stSidebar"] div.stRadio label[data-checked="true"] {
-        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
-        border-color: rgba(212, 175, 55, 0.35) !important;
-        color: #f3d060 !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.06) !important;
+        color: #d4af37 !important;
+        font-weight: 500 !important;
+        border-left: 2px solid #d4af37 !important;
+        padding-left: 20px !important;
+        box-shadow: none !important;
     }
     div[data-testid="stSidebar"] div.stRadio label > div:first-child {
         display: none !important; /* Hide native radio circles */
     }
     
-    /* Inputs, selectboxes, and number input boxes overrides */
+    /* Minimalist Inputs and Selectboxes */
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] input {
-        background-color: rgba(13, 12, 18, 0.5) !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-        border-radius: 12px !important;
-        color: #e2e8f0 !important;
+        background-color: #0b0b0d !important;
+        border: 1px solid #16161f !important;
+        border-radius: 6px !important;
+        color: #cbd5e1 !important;
         transition: all 0.3s ease !important;
-        backdrop-filter: blur(10px) !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
     }
     div[data-baseweb="select"] > div:hover,
     div[data-baseweb="input"] > div:hover,
     div[data-testid="stNumberInput"] input:hover {
-        border-color: rgba(212, 175, 55, 0.25) !important;
+        border-color: #2b2b38 !important;
     }
     div[data-baseweb="select"] > div:focus-within,
     div[data-baseweb="input"] > div:focus-within {
-        border-color: rgba(212, 175, 55, 0.5) !important;
-        box-shadow: 0 0 12px rgba(212, 175, 55, 0.15) !important;
+        border-color: #d4af37 !important;
+        box-shadow: none !important;
     }
     
-    /* Elegant Custom Gold Buttons */
+    /* Solid Flat Burnished Gold Buttons */
     div.stButton > button {
-        background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%) !important;
-        color: #07070a !important;
+        background: #b28b12 !important;
+        color: #000000 !important;
         font-family: 'Outfit', sans-serif !important;
-        font-weight: 600 !important;
-        border: 1px solid rgba(212, 175, 55, 0.25) !important;
-        border-radius: 12px !important;
+        font-weight: 500 !important;
+        border: none !important;
+        border-radius: 6px !important;
         padding: 10px 24px !important;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1) !important;
+        transition: all 0.3s ease !important;
+        box-shadow: none !important;
         text-transform: uppercase;
-        font-size: 12px !important;
-        letter-spacing: 0.8px !important;
+        font-size: 11px !important;
+        letter-spacing: 1.5px !important;
         width: 100%;
     }
     div.stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.25), 0 0 15px rgba(212, 175, 55, 0.1) !important;
+        background: #d4af37 !important;
+        transform: none !important;
+        box-shadow: none !important;
         color: #000000 !important;
-        border-color: #f3d060 !important;
     }
     div.stButton > button:active {
-        transform: translateY(0px) !important;
+        background: #90700d !important;
     }
     
-    /* Override standard red Streamlit Slider */
+    /* Refined Gold Slider */
     div.stSlider > div {
         padding-top: 10px !important;
         padding-bottom: 10px !important;
     }
     div.stSlider [data-testid="stThumb"] {
         background-color: #d4af37 !important;
-        border: 2px solid #050408 !important;
-        box-shadow: 0 0 10px rgba(212, 175, 55, 0.4) !important;
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+        border-radius: 50% !important;
+        width: 14px !important;
+        height: 14px !important;
     }
     div.stSlider [style*="background-color: rgb(255, 75, 75)"] {
         background-color: #d4af37 !important;
@@ -192,108 +160,83 @@ st.markdown("""
     div.stSlider [style*="background-color: rgb(244, 63, 94)"] {
         background-color: #d4af37 !important;
     }
+    div.stSlider [data-testid="stSliderTrack"] > div {
+        background-color: #16161f !important;
+    }
     
-    /* Header branding */
+    /* Sidebar Branding */
     .brand-container {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        margin-bottom: 25px;
-        padding: 16px;
-        background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-        border-radius: 16px;
-        border: 1px solid rgba(212, 175, 55, 0.1);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        justify-content: center;
+        margin-bottom: 35px;
+        padding: 20px 10px;
+        background: transparent;
+        border-radius: 0px;
+        border: none;
+        border-bottom: 1px solid #111115;
+        box-shadow: none;
     }
     .brand-title {
-        font-size: 26px;
-        font-weight: 700;
-        background: linear-gradient(90deg, #f3d060 0%, #d4af37 50%, #aa820a 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-left: 10px;
-        letter-spacing: 2px;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 24px;
+        font-weight: 300;
+        color: #e2e8f0;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+        margin: 0px;
     }
     
-    /* Luxury Cards */
+    /* Matte Luxury Cards */
     .glass-card {
-        background: rgba(13, 12, 18, 0.45);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        border-radius: 20px;
+        background: #0b0b0e;
+        border: 1px solid #14141a;
+        border-radius: 12px;
         padding: 24px;
-        box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.6);
+        box-shadow: none;
         margin-bottom: 24px;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
     }
-    .glass-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(135deg, rgba(212, 175, 55, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
-        opacity: 0;
-        transition: opacity 0.4s ease;
-        pointer-events: none;
-    }
     .glass-card:hover {
-        transform: translateY(-4px);
-        border-color: rgba(212, 175, 55, 0.18);
-        box-shadow: 0 20px 50px -15px rgba(212, 175, 55, 0.08), 0 0 30px -5px rgba(0, 0, 0, 0.6);
-    }
-    .glass-card:hover::before {
-        opacity: 1;
+        border-color: #2b2b36;
     }
     
-    /* Badge styling */
-    .badge {
-        display: inline-block;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 500;
-        text-transform: uppercase;
-        margin: 3px;
-        letter-spacing: 0.5px;
-        font-family: 'Outfit', sans-serif;
-    }
-    .badge-top { background: rgba(244, 63, 94, 0.06); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.2); }
-    .badge-mid { background: rgba(16, 185, 129, 0.06); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.2); }
-    .badge-base { background: rgba(245, 158, 11, 0.06); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.2); }
-    .badge-accord { background: rgba(212, 175, 55, 0.06); color: #fde68a; border: 1px solid rgba(212, 175, 55, 0.25); }
-    
+    /* Rating & Gender labels - Monochromatic Minimalist */
     .rating-pill {
-        background: rgba(212, 175, 55, 0.08);
-        color: #f3d060;
-        border: 1px solid rgba(212, 175, 55, 0.25);
-        font-weight: bold;
-        padding: 4px 10px;
-        border-radius: 8px;
+        background: transparent;
+        color: #d4af37;
+        font-weight: 500;
+        padding: 0px;
+        border: none;
         font-size: 12px;
         font-family: 'Outfit', sans-serif;
+        letter-spacing: 0.5px;
     }
     
     .gender-pill {
-        background: rgba(255, 255, 255, 0.04);
-        color: #94a3b8;
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-size: 12px;
-        text-transform: capitalize;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: transparent;
+        color: #717188;
+        padding: 0;
+        border: none;
+        font-size: 11px;
+        text-transform: uppercase;
         font-family: 'Outfit', sans-serif;
+        letter-spacing: 1px;
     }
 
     /* Links */
     .fragrantica-link {
         color: #cbd5e1;
         text-decoration: none;
-        font-weight: 600;
+        font-weight: 500;
         transition: all 0.3s ease;
     }
     .fragrantica-link:hover {
         color: #d4af37;
+        text-decoration: underline;
     }
 
     /* Molecules container */
@@ -301,14 +244,14 @@ st.markdown("""
         display: flex;
         justify-content: center;
         align-items: center;
-        background: #050408;
-        border-radius: 20px;
+        background: #08080a;
+        border-radius: 12px;
         padding: 20px;
-        border: 1px solid rgba(212, 175, 55, 0.08);
-        box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+        border: 1px solid #14141a;
+        box-shadow: none;
     }
     
-    /* Olfactory Pyramid Container Styling */
+    /* Clean Typography Olfactory Pyramid */
     .pyramid-container {
         display: flex;
         flex-direction: column;
@@ -316,35 +259,44 @@ st.markdown("""
         margin-top: 15px;
     }
     .pyramid-tier {
-        background: rgba(255, 255, 255, 0.01);
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        border-radius: 14px;
-        padding: 12px 18px;
-        transition: all 0.3s ease;
+        border-bottom: 1px solid #111116;
+        padding-bottom: 10px;
     }
-    .pyramid-tier:hover {
-        background: rgba(212, 175, 55, 0.02);
-        border-color: rgba(212, 175, 55, 0.1);
+    .pyramid-tier:last-child {
+        border-bottom: none;
     }
     .tier-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
         font-family: 'Outfit', sans-serif;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 10px;
+        font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 6px;
+        letter-spacing: 1.5px;
+        margin-bottom: 4px;
     }
     .tier-top { color: #fda4af; }
     .tier-mid { color: #a7f3d0; }
     .tier-base { color: #fde68a; }
+    
+    /* Clean text notes */
+    .notes-list {
+        font-size: 13.5px;
+        color: #cbd5e1;
+        line-height: 1.5;
+        font-weight: 300;
+    }
+    
+    /* Accords list */
+    .accord-text {
+        font-family: 'Outfit', sans-serif;
+        font-size: 9px;
+        font-weight: 400;
+        text-transform: uppercase;
+        color: #d4af37;
+        letter-spacing: 1px;
+        margin-right: 12px;
+        display: inline-block;
+    }
 </style>
-
-<!-- Floating Background Divs -->
-<div class="ambient-glow-1"></div>
-<div class="ambient-glow-2"></div>
 """, unsafe_allow_html=True)
 
 # ----------------- CACHED RESOURCES & DATA LOADING -----------------
@@ -405,26 +357,27 @@ dupe_finder = get_dupe_finder()
 
 # Helper for physical tiered notes display
 def get_pyramid_html(top_notes, mid_notes, base_notes, accords):
-    top_html = "".join([f"<span class='badge badge-top'>{n}</span>" for n in top_notes])
-    mid_html = "".join([f"<span class='badge badge-mid'>{n}</span>" for n in mid_notes])
-    base_html = "".join([f"<span class='badge badge-base'>{n}</span>" for n in base_notes])
-    accords_html = "".join([f"<span class='badge badge-accord'>{a}</span>" for a in accords])
+    top_str = ", ".join(top_notes) if top_notes else "N/A"
+    mid_str = ", ".join(mid_notes) if mid_notes else "N/A"
+    base_str = ", ".join(base_notes) if base_notes else "N/A"
+    
+    accords_html = "".join([f"<span class='accord-text'>• {a.upper()}</span>" for a in accords])
     
     return f"""
     <div class="pyramid-container">
         <div class="pyramid-tier">
-            <div class="tier-header tier-top">✨ Opening • Top Notes</div>
-            <div>{top_html if top_html else '<span style="font-size:11px; color:#64748b;">N/A</span>'}</div>
+            <div class="tier-header tier-top">Top Notes</div>
+            <div class="notes-list">{top_str}</div>
         </div>
         <div class="pyramid-tier">
-            <div class="tier-header tier-mid">🌿 Heart • Middle Notes</div>
-            <div>{mid_html if mid_html else '<span style="font-size:11px; color:#64748b;">N/A</span>'}</div>
+            <div class="tier-header tier-mid">Heart Notes</div>
+            <div class="notes-list">{mid_str}</div>
         </div>
         <div class="pyramid-tier">
-            <div class="tier-header tier-base">🪵 Anchor • Base Notes</div>
-            <div>{base_html if base_html else '<span style="font-size:11px; color:#64748b;">N/A</span>'}</div>
+            <div class="tier-header tier-base">Base Notes</div>
+            <div class="notes-list">{base_str}</div>
         </div>
-        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.03);">
+        <div style="margin-top: 5px; padding-top: 8px;">
             {accords_html}
         </div>
     </div>
@@ -435,35 +388,32 @@ def get_pyramid_html(top_notes, mid_notes, base_notes, accords):
 with st.sidebar:
     st.markdown("""
     <div class="brand-container">
-        <span style="font-size: 30px;">🧪</span>
         <span class="brand-title">SCENTIENT</span>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<p style='font-family: \"Outfit\", sans-serif; font-size: 12px; color: #d4af37; margin-top: -18px; margin-bottom: 25px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 500; text-align: center;'>The Chemistry of Luxury Scent</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-family: \"Outfit\", sans-serif; font-size: 10px; color: #d4af37; margin-top: -24px; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; font-weight: 400; text-align: center;'>Molecular Olfaction</p>", unsafe_allow_html=True)
     
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; color: #e2e8f0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;'>🗺️ Navigate Platform</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; color: #717188; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; padding-left: 15px;'>Navigation</h4>", unsafe_allow_html=True)
     
     menu = st.radio(
         "Go to page:",
         [
-            "🏠 Home & Discovery Explorer", 
-            "🔍 Semantic Scent Search", 
-            "💎 Dupe & Alternative Discovery",
-            "🔬 Molecular Odor Predictor",
-            "📊 ML Dashboard & Features"
+            "Home & Discovery Explorer", 
+            "Semantic Scent Search", 
+            "Dupe & Alternative Discovery",
+            "Molecular Odor Predictor",
+            "ML Dashboard & Features"
         ],
         label_visibility="collapsed"
     )
     
     st.markdown("---")
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; color: #d4af37; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;'>📊 OLFACTIVE REPOSITORY</h4>", unsafe_allow_html=True)
-    st.markdown(f"**Total Fragrances:** `{len(df_perfumes):,}`")
-    st.markdown(f"**Total Brands:** `{df_perfumes['Brand'].nunique():,}`")
-    st.markdown(f"**Demographics:** `Unisex, Pour Homme, Pour Femme`")
+    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; color: #d4af37; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; padding-left: 15px;'>Olfactive Repository</h4>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size: 13px; color: #a1a1b5; padding-left: 15px; line-height: 1.6;'><b>Fragrances:</b> {len(df_perfumes):,}<br><b>Brands:</b> {df_perfumes['Brand'].nunique():,}<br><b>Demographics:</b> Unisex, Pour Homme, Pour Femme</div>", unsafe_allow_html=True)
     
     st.markdown("---")
-    st.markdown("<div style='font-size: 11px; color: #4b4b5c; text-align: center;'>Scentient Platform • Developed by Muhammad Ali<br>Powered by RDKit, Mordred & Random Forests</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 10px; color: #4b4b5c; text-align: center; font-weight: 300;'>Scentient Platform • Developed by Muhammad Ali<br>Powered by RDKit, Mordred & Random Forests</div>", unsafe_allow_html=True)
 
 # ----------------- RDKIT MOLECULE RENDERING -----------------
 
@@ -477,11 +427,11 @@ def render_molecule_svg(smiles):
         
         # Style Options for Premium Look (Dark background, clear contrast)
         opts = drawer.drawOptions()
-        opts.backgroundColour = (0.05, 0.04, 0.08, 1.0) # Match dark card style
-        opts.legendFontSize = 14
-        opts.annotationFontSize = 14
+        opts.backgroundColour = (0.04, 0.04, 0.06, 1.0) # Match dark card style
+        opts.legendFontSize = 13
+        opts.annotationFontSize = 13
         opts.multipleBondOffset = 0.15
-        opts.bondThickness = 3.0
+        opts.bondThickness = 2.0
         
         # Color atoms clearly
         opts.useBWDirectly = False
@@ -496,37 +446,39 @@ def render_molecule_svg(smiles):
 # ----------------- PAGES IMPLEMENTATION -----------------
 
 # Page 1: Home & Discovery Explorer
-if menu == "🏠 Home & Discovery Explorer":
+if menu == "Home & Discovery Explorer":
     # Stunning editorial split hero layout
     hero_col1, hero_col2 = st.columns([5, 4])
     
     with hero_col1:
         st.markdown("""
-        <h1 style="font-size: 60px; font-weight: 700; line-height: 1.1; margin-top: 15px; margin-bottom: 5px; background: linear-gradient(90deg, #f5d060 0%, #d4af37 50%, #aa820a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        <h1 style="font-family: 'Cormorant Garamond', serif; font-size: 55px; font-weight: 300; line-height: 1.0; margin-top: 20px; margin-bottom: 10px; color: #f3d060; letter-spacing: 2px; text-transform: uppercase;">
             SCENTIENT
         </h1>
-        <h3 class="sub-title" style="font-size: 16px; font-weight: 400; color: #a6a6bd; margin-top:0px; margin-bottom: 25px; letter-spacing: 3px; text-transform: uppercase;">
-            Decoding the Chemistry of Olfaction
+        <h3 class="sub-title" style="font-size: 11px; font-weight: 400; color: #717188; margin-top:0px; margin-bottom: 30px; letter-spacing: 4px; text-transform: uppercase;">
+            Molecular Olfaction Platform
         </h3>
-        <p style="font-size: 16px; line-height: 1.75; color: #b2b2cb; margin-bottom: 20px;">
-            Welcome to the intersection of molecular science and luxury perfumery. Scentient decodes the olfactive universe by bridging structural organic chemistry and sensory language.
+        <p style="font-size: 15px; line-height: 1.8; color: #a1a1b5; margin-bottom: 20px; font-weight: 300;">
+            Welcome to the intersection of molecular organic chemistry and sensory aesthetics. Scentient decodes the olfactive universe by bridging mathematical compound geometry and the natural vocabulary of scent.
         </p>
-        <p style="font-size: 15px; line-height: 1.75; color: #9494a8; margin-bottom: 25px;">
-            Through compute-dense topological descriptors (<b>RDKit & Mordred</b>), machine learning odor models (<b>Random Forests</b>), and semantic natural language representations, you can catalog compounds, query notes, and discover custom high-fidelity perfume alternatives.
+        <p style="font-size: 14px; line-height: 1.8; color: #717188; margin-bottom: 30px; font-weight: 300;">
+            Utilizing topological graph descriptors via <b>RDKit</b>, high-dimensional machine learning estimators, and semantic vector indexing, Scentient parses chemical molecules, executes note-weighted searches, and retrieves direct budget-friendly olfactive equivalents.
         </p>
         """, unsafe_allow_html=True)
         
     with hero_col2:
-        if os.path.exists("luxury_perfume.png"):
+        # Load the refined, minimalist image if it exists, otherwise fall back to original
+        img_file = "minimalist_perfume.png" if os.path.exists("minimalist_perfume.png") else "luxury_perfume.png"
+        if os.path.exists(img_file):
             st.markdown("""
-            <div style="display: flex; justify-content: center; align-items: center; padding: 10px; background: rgba(13,12,18,0.3); border: 1px solid rgba(212,175,55,0.08); border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: center; align-items: center; padding: 1px; background: #0c0c0f; border: 1px solid #14141a; border-radius: 12px;">
             """, unsafe_allow_html=True)
-            st.image("luxury_perfume.png", use_container_width=True)
+            st.image(img_file, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
             
-    st.markdown("<hr style='border-color: rgba(212, 175, 55, 0.08); margin: 35px 0px;'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='font-size: 32px; color: #f3d060; margin-bottom: 10px;'>🔎 Olfactive Discovery Library</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94a3b8; margin-bottom: 30px;'>Explore, filter, and dissect the notes of over 24,000 elite luxury, designer, and boutique perfumes.</p>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color: #111115; margin: 35px 0px;'>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 28px; font-weight: 300; color: #f3d060; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;'>Olfactive Discovery Library</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #717188; margin-bottom: 30px; font-weight:300; font-size:14.5px;'>Explore, filter, and dissect the notes of over 24,000 elite luxury, designer, and boutique perfumes.</p>", unsafe_allow_html=True)
     
     # Scent Discovery Filters
     filter_card = st.container()
@@ -535,7 +487,7 @@ if menu == "🏠 Home & Discovery Explorer":
         with col1:
             gender_filter = st.selectbox("Olfactive Demography", ["All", "Unisex", "Men", "Women"])
         with col2:
-            rating_filter = st.slider("Minimum Quality Score (Stars)", 0.0, 5.0, 3.8, 0.1)
+            rating_filter = st.slider("Minimum Quality Score", 0.0, 5.0, 3.8, 0.1)
         with col3:
             search_brand = st.text_input("Brand / House Search", placeholder="e.g. Tom Ford, Creed...")
         with col4:
@@ -556,7 +508,7 @@ if menu == "🏠 Home & Discovery Explorer":
         )
         filtered_df = filtered_df[note_match]
         
-    st.markdown(f"<p style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; margin-top: 15px;'>Catalogued matches: <b>{len(filtered_df):,}</b> perfumes found</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='font-family: \"Outfit\", sans-serif; font-size: 12px; color: #d4af37; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;'>Catalogued matches: <b>{len(filtered_df):,}</b> perfumes found</p>", unsafe_allow_html=True)
     
     # Paginate results for clean loading
     limit = 12
@@ -564,7 +516,7 @@ if menu == "🏠 Home & Discovery Explorer":
     
     col_p1, col_p2 = st.columns([1, 6])
     with col_p1:
-        page_num = st.number_input("Page Selector", min_value=1, max_value=pages, step=1, value=1)
+        page_num = st.number_input("Page", min_value=1, max_value=pages, step=1, value=1)
     
     start_idx = (page_num - 1) * limit
     end_idx = start_idx + limit
@@ -586,14 +538,14 @@ if menu == "🏠 Home & Discovery Explorer":
             
             card_content = f"""
             <div class="glass-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                     <div>
-                        <h4 style="margin: 0px 0px 4px 0px; font-size: 21px; font-weight: 600;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
-                        <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 13px; color: #d4af37; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).title()}</p>
+                        <h4 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 500;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
+                        <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 11px; color: #d4af37; font-weight: 400; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).title()}</p>
                     </div>
-                    <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
                         <span class="gender-pill">{row['Gender']}</span>
-                        <span class="rating-pill">⭐ {row['Rating Value']:.2f}</span>
+                        <span class="rating-pill">{row['Rating Value']:.2f} Rating</span>
                     </div>
                 </div>
                 {pyramid_html}
@@ -604,19 +556,18 @@ if menu == "🏠 Home & Discovery Explorer":
         st.info("No fragrances match your filter parameters. Try expanding your search criteria!")
 
 # Page 2: Semantic Scent Search
-elif menu == "🔍 Semantic Scent Search":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px;'>🔍 Semantic Scent Search</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94a3b8; margin-bottom: 25px;'>Describe your dream sensory experience to retrieve matching olfactive profiles.</p>", unsafe_allow_html=True)
+elif menu == "Semantic Scent Search":
+    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>Semantic Scent Search</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Describe your desired olfactive atmosphere in natural language to retrieve matches.</p>", unsafe_allow_html=True)
     
     vectorizer, tfidf_matrix = load_search_engine(df_perfumes)
     
     st.markdown(
         """
-        <div class="glass-card" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.04) 0%, rgba(255,255,255,0.01) 100%);">
-            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">💡 NLP Weighted Engine</h5>
-            <p style="margin: 0px; font-size: 13.5px; line-height: 1.6; color: #b2b2cb;">
-                We represent each perfume as a structured document capturing its exact olfactive layers (Top, Mid, Base) and principal accords. 
-                Using a customized <b>TF-IDF Vectorizer</b>, we convert your rich natural descriptions into high-dimensional keyword representations and execute a <b>Cosine Similarity</b> search against our entire 24,000+ library.
+        <div class="glass-card">
+            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Olfactive PYRAMID Vectorization</h5>
+            <p style="margin: 0px; font-size: 13.5px; line-height: 1.7; color: #a1a1b5; font-weight: 300;">
+                We represent each perfume as a structured document capturing its exact olfactive layers and principal accords. Using a customized TF-IDF Vectorizer, we convert your descriptions into high-dimensional keyword representations and execute a Cosine Similarity search against our entire 24,000+ library.
             </p>
         </div>
         """, 
@@ -625,16 +576,16 @@ elif menu == "🔍 Semantic Scent Search":
     
     col_s1, col_s2 = st.columns([3, 1])
     with col_s1:
-        query = st.text_input("Describe the scent or atmosphere you desire:", "sweet chocolate coffee winter perfume with vanilla base")
+        query = st.text_input("Describe the atmosphere or specific notes you seek:", "sweet chocolate coffee winter perfume with vanilla base")
     with col_s2:
-        s_gender = st.selectbox("Target Demography", ["All", "Unisex", "Men", "Women"])
+        s_gender = st.selectbox("Olfactive Demography", ["All", "Unisex", "Men", "Women"])
         
-    num_results = st.slider("Results Count", 4, 30, 8, 2)
+    num_results = st.slider("Result Count Limit", 4, 30, 8, 2)
     
     if query:
         from sklearn.metrics.pairwise import cosine_similarity
         
-        st.markdown(f"<h3 style='color: #f3d060; font-size: 24px; margin-top: 25px;'>🎯 Top Semantic Matches for: <i>\"{query}\"</i></h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-top: 25px; text-transform: uppercase; letter-spacing: 1px;'>Olfactive Matches for: <i>\"{query}\"</i></h3>", unsafe_allow_html=True)
         
         # Transform query
         query_vec = vectorizer.transform([query.lower()])
@@ -664,14 +615,14 @@ elif menu == "🔍 Semantic Scent Search":
                 
                 card_content = f"""
                 <div class="glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                         <div>
-                            <h4 style="margin: 0px 0px 4px 0px; font-size: 21px; font-weight: 600;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
-                            <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 13px; color: #d4af37; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).title()}</p>
+                            <h4 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 500;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
+                            <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 11px; color: #d4af37; font-weight: 400; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).title()}</p>
                         </div>
-                        <div style="display: flex; flex-direction: column; align-items: end; gap: 6px;">
-                            <span class="rating-pill" style="background: rgba(16, 185, 129, 0.08); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);">⚡ {row['Similarity']:.1f}% Match</span>
-                            <span class="gender-pill" style="font-size: 11px;">⭐ {row['Rating Value']:.2f} ({row['Gender']})</span>
+                        <div style="display: flex; flex-direction: column; align-items: end; gap: 4px;">
+                            <span class="rating-pill">{row['Similarity']:.1f}% Similarity</span>
+                            <span class="gender-pill">{row['Rating Value']:.2f} Rating ({row['Gender']})</span>
                         </div>
                     </div>
                     {pyramid_html}
@@ -682,16 +633,16 @@ elif menu == "🔍 Semantic Scent Search":
             st.warning("No matches found. Try entering alternative scent descriptors!")
 
 # Page 3: Dupe & Alternative Discovery
-elif menu == "💎 Dupe & Alternative Discovery":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px;'>💎 Dupe & Alternative Discovery</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94a3b8; margin-bottom: 25px;'>Find highly similar affordable alternatives to your favorite luxury and niche scents</p>", unsafe_allow_html=True)
+elif menu == "Dupe & Alternative Discovery":
+    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>Dupe & Alternative Discovery</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Discover highly accurate, cost-effective equivalents of prestigious luxury fragrances.</p>", unsafe_allow_html=True)
     
     st.markdown(
         """
-        <div class="glass-card" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.04) 0%, rgba(255,255,255,0.01) 100%);">
-            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">📊 Weighted Comparison Heuristics</h5>
-            <p style="margin: 0px; font-size: 13.5px; line-height: 1.6; color: #b2b2cb;">
-                Our discovery algorithm scores notes dynamically: rare components scale higher (TF-IDF weights), cross-tier pairings are penalized (e.g. matching a Top note to a Base note receives a 40% reduction), and specialized clone house boosts (e.g. Lattafa, Armaf, Afnan) prioritize direct budget equivalents.
+        <div class="glass-card">
+            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Olfactory Mapping Architecture</h5>
+            <p style="margin: 0px; font-size: 13.5px; line-height: 1.7; color: #a1a1b5; font-weight: 300;">
+                Our algorithm rates component rarity mathematically (rare notes weigh more heavily), penalizes cross-tier shifts (matching top notes directly to base notes), and integrates dedicated clone house filters (Lattafa, Armaf, Afnan) to target direct equivalents.
             </p>
         </div>
         """,
@@ -699,20 +650,20 @@ elif menu == "💎 Dupe & Alternative Discovery":
     )
     
     # Default high-end luxury searches
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;'>🌟 Luxury Favorites Quick Match</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 11px; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;'>Prestigious Fragrances</h4>", unsafe_allow_html=True)
     
     col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
     query_dupe = "baccarat-rouge-540"
-    if col_btn1.button("🥃 Creed Aventus"):
+    if col_btn1.button("Creed Aventus"):
         query_dupe = "aventus"
-    if col_btn2.button("🔮 Baccarat Rouge 540"):
+    if col_btn2.button("Baccarat Rouge 540"):
         query_dupe = "baccarat-rouge-540"
-    if col_btn3.button("🍨 Parfums de Marly Althair"):
+    if col_btn3.button("Parfums de Marly Althair"):
         query_dupe = "althair"
-    if col_btn4.button("🍒 Tom Ford Lost Cherry"):
+    if col_btn4.button("Tom Ford Lost Cherry"):
         query_dupe = "lost-cherry"
         
-    query_search = st.text_input("Or input a custom luxury perfume title below:", query_dupe)
+    query_search = st.text_input("Or query a specific prestigious model title:", query_dupe)
     
     if query_search and dupe_finder:
         with st.spinner("Executing similarity mapping..."):
@@ -732,16 +683,16 @@ elif menu == "💎 Dupe & Alternative Discovery":
             if base_perfume is not None:
                 st.markdown(
                     f"""
-                    <div style="background: rgba(212, 175, 55, 0.03); border: 1px dashed rgba(212, 175, 55, 0.25); border-radius: 16px; padding: 20px; margin-bottom: 30px;">
-                        <h4 style="margin: 0px 0px 6px 0px; font-family: 'Cormorant Garamond', serif; font-size: 24px; color: #f3d060; font-weight: 600;">Luxury Perfume Profile: {str(base_perfume['Perfume']).replace("-", " ").title()} by {str(base_perfume['Brand']).title()}</h4>
-                        <p style="margin:0px 0px 10px 0px; font-family: 'Outfit', sans-serif; font-size:13px; color:#94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Demography: <b>{base_perfume['Gender']}</b> | Quality Score: <b>⭐ {float(base_perfume['Rating Value']):.2f}</b> | Year: <b>{int(base_perfume['Year']) if pd.notna(base_perfume['Year']) else 'N/A'}</b></p>
-                        <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.6;"><b>Olfactive Pyramid:</b> Top ({', '.join(base_perfume['Top'])}) • Heart ({', '.join(base_perfume['Middle'])}) • Base ({', '.join(base_perfume['Base'])})</p>
+                    <div style="background: transparent; border: 1px solid #22222d; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                        <h4 style="margin: 0px 0px 6px 0px; font-family: 'Cormorant Garamond', serif; font-size: 22px; color: #f3d060; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Selected Luxury Fragrance: {str(base_perfume['Perfume']).replace("-", " ").title()} by {str(base_perfume['Brand']).title()}</h4>
+                        <p style="margin:0px 0px 10px 0px; font-family: 'Outfit', sans-serif; font-size:11px; color:#717188; text-transform: uppercase; letter-spacing: 1px;">Demography: <b>{base_perfume['Gender']}</b> | Score: <b>{float(base_perfume['Rating Value']):.2f} Rating</b> | Year: <b>{int(base_perfume['Year']) if pd.notna(base_perfume['Year']) else 'N/A'}</b></p>
+                        <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.6; font-weight: 300;"><b>Olfactive Pyramid:</b> Top ({', '.join(base_perfume['Top'])}) • Heart ({', '.join(base_perfume['Middle'])}) • Base ({', '.join(base_perfume['Base'])})</p>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
             
-            st.markdown("<h3 style='color: #f3d060; font-size: 26px; margin-bottom: 20px;'>🏆 Ranked Affordable Alternatives</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color: #f3d060; font-size: 24px; font-weight: 300; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;'>Olfactive Equivalents</h3>", unsafe_allow_html=True)
             
             # Display results in columns
             col_dupe1, col_dupe2 = st.columns(2)
@@ -760,7 +711,7 @@ elif menu == "💎 Dupe & Alternative Discovery":
                 if base_perfume is not None:
                     lux_notes = set(base_perfume['Top'] + base_perfume['Middle'] + base_perfume['Base'])
                     
-                    for layer_name, notes_list, b_class in [("Top", dupe_top, "badge-top"), ("Mid", dupe_mid, "badge-mid"), ("Base", dupe_base, "badge-base")]:
+                    for layer_name, notes_list, color_class in [("Top", dupe_top, "tier-top"), ("Mid", dupe_mid, "tier-mid"), ("Base", dupe_base, "tier-base")]:
                         for note in notes_list[:4]:
                             is_overlap = False
                             for ln in lux_notes:
@@ -768,30 +719,30 @@ elif menu == "💎 Dupe & Alternative Discovery":
                                     is_overlap = True
                                     break
                             
-                            style_border = "border: 2px solid rgba(212, 175, 55, 0.7); box-shadow: 0 0 8px rgba(212, 175, 55, 0.25);" if is_overlap else ""
-                            overlap_html.append(f"<span class='badge {b_class}' style='{style_border}'>{note}</span>")
+                            style_overlap = "color: #d4af37; font-weight: 500;" if is_overlap else "color: #8c8c9e;"
+                            overlap_html.append(f"<span style='font-size: 13.5px; margin-right: 12px; display: inline-block; {style_overlap}'>• {note}</span>")
                 
                 acc_list = [full_dupe[f'mainaccord{k}'] for k in range(1, 6) if pd.notna(full_dupe[f'mainaccord{k}'])]
-                accords_html = "".join([f"<span class='badge badge-accord'>{a}</span>" for a in acc_list])
+                accords_html = "".join([f"<span class='accord-text'>• {a.upper()}</span>" for a in acc_list])
                 
                 card_content = f"""
                 <div class="glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                         <div>
-                            <h4 style="margin: 0px 0px 4px 0px; font-size: 21px; font-weight: 600;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
-                            <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 13px; color: #f3d060; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).upper()}</p>
+                            <h4 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 500;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
+                            <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 11px; color: #f3d060; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).upper()}</p>
                         </div>
-                        <div style="display: flex; flex-direction: column; align-items: end; gap: 6px;">
-                            <span class="rating-pill" style="font-size: 13px; background: rgba(212, 175, 55, 0.1); color: #f3d060; border: 1px solid rgba(212, 175, 55, 0.35);">💎 {row['Similarity (%)']:.1f}% Match</span>
-                            <span class="gender-pill" style="font-size: 11px;">⭐ {float(row['Rating Value']):.2f} ({row['Gender']})</span>
+                        <div style="display: flex; flex-direction: column; align-items: end; gap: 4px;">
+                            <span class="rating-pill" style="font-size: 13px;">{row['Similarity (%)']:.1f}% Match</span>
+                            <span class="gender-pill">{float(row['Rating Value']):.2f} Rating ({row['Gender']})</span>
                         </div>
                     </div>
                     <div style="margin-top: 15px;">
-                        <div style="font-family: 'Outfit', sans-serif; font-size: 11px; color: #cbd5e1; margin-bottom: 8px; font-weight:600; text-transform: uppercase; letter-spacing: 0.5px;">Note Matches (Highlighted borders represent luxurious overlap):</div>
-                        <div style="margin-bottom: 12px;">
-                            {"".join(overlap_html) if overlap_html else '<span style="font-size:11px; color:#64748b;">N/A</span>'}
+                        <div style="font-family: 'Outfit', sans-serif; font-size: 10px; color: #717188; margin-bottom: 8px; font-weight:600; text-transform: uppercase; letter-spacing: 1px;">Olfactive Overlap (Gold denotes exact luxury elements):</div>
+                        <div style="margin-bottom: 12px; line-height: 1.6;">
+                            {"".join(overlap_html) if overlap_html else '<span style="font-size:12px; color:#64748b;">N/A</span>'}
                         </div>
-                        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.03);">
+                        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #111116;">
                             {accords_html}
                         </div>
                     </div>
@@ -802,16 +753,16 @@ elif menu == "💎 Dupe & Alternative Discovery":
             st.error(f"Could not locate matching perfumes for '{query_search}'. Please refine your search entry.")
 
 # Page 4: Molecular Odor Predictor
-elif menu == "🔬 Molecular Odor Predictor":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px;'>🔬 Molecular Odor Predictor</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94a3b8; margin-bottom: 25px;'>Input a molecular SMILES structure to predict raw olfactive profiles using advanced scikit-learn random forests</p>", unsafe_allow_html=True)
+elif menu == "Molecular Odor Predictor":
+    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>Molecular Odor Predictor</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Decode structural SMILES formulas to predict chemical odor categories.</p>", unsafe_allow_html=True)
     
     st.markdown(
         """
-        <div class="glass-card" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.04) 0%, rgba(255,255,255,0.01) 100%);">
-            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">🔬 The Organic Chemistry Pipeline</h5>
-            <p style="margin: 0px; font-size: 13.5px; line-height: 1.6; color: #b2b2cb;">
-                We parse your organic SMILES strings in real-time via <b>RDKit</b>. We then map <b>1,800+</b> molecular descriptors using <b>Mordred</b>. After removing zero-variance and multi-collinear columns, the top <b>250 mutual information features</b> feed a trained <b>Random Forest Classifier</b> to predict the chemical's primary olfactory note.
+        <div class="glass-card">
+            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Molecular Geometry Featurization</h5>
+            <p style="margin: 0px; font-size: 13.5px; line-height: 1.7; color: #a1a1b5; font-weight: 300;">
+                We parse your organic SMILES strings in real-time via RDKit, generating 1,800+ structural, electrostatic, and topological graph descriptors using Mordred. After collinearity pruning, the top 250 mutual information descriptors compile a Random Forest Classifier to output primary raw odor classifications.
             </p>
         </div>
         """,
@@ -819,29 +770,29 @@ elif menu == "🔬 Molecular Odor Predictor":
     )
     
     # Examples selection
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;'>💡 Dynamic Molecular Standards</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 11px; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;'>Common Molecules</h4>", unsafe_allow_html=True)
     
     col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
     selected_smiles = "COC1=CC=C(C=C1)C=O" # Vanillin default
     
-    if col_m1.button("🧁 Vanillin (Vanilla)"):
+    if col_m1.button("Vanillin (Vanilla)"):
         selected_smiles = "COC1=CC=C(C=C1)C=O"
-    if col_m2.button("🍋 Limonene (Citrus)"):
+    if col_m2.button("Limonene (Citrus)"):
         selected_smiles = "C=C(C)CCC1=CC=C(C=C1)C"
-    if col_m3.button("🌿 Menthol (Minty)"):
+    if col_m3.button("Menthol (Mint)"):
         selected_smiles = "CC(C)C1CCC(C)CC1O"
-    if col_m4.button("🌹 Phenylethyl Alcohol (Rose)"):
+    if col_m4.button("Phenylethyl Alcohol (Rose)"):
         selected_smiles = "C1=CC=C(C=C1)CCO"
-    if col_m5.button("🌲 Alpha-Pinene (Pine)"):
+    if col_m5.button("Alpha-Pinene (Pine)"):
         selected_smiles = "CC1=CCC2CC1C2(C)C"
         
-    input_smiles = st.text_input("Or enter a custom IUPAC SMILES string:", selected_smiles)
+    input_smiles = st.text_input("Or input a custom molecular SMILES string:", selected_smiles)
     
     if input_smiles:
         col_pred1, col_pred2 = st.columns([1, 1])
         
         with col_pred1:
-            st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 18px; color: #d4af37; margin-bottom:12px;'>🔬 Dynamic 2D Structural Map</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Molecular Topology</h4>", unsafe_allow_html=True)
             svg_text = render_molecule_svg(input_smiles)
             if svg_text:
                 st.markdown(f"<div class='mol-container'>{svg_text}</div>", unsafe_allow_html=True)
@@ -849,7 +800,7 @@ elif menu == "🔬 Molecular Odor Predictor":
                 st.error("Invalid SMILES structure. Please verify your organic chemical formula.")
                 
         with col_pred2:
-            st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 18px; color: #d4af37; margin-bottom:12px;'>🧠 AI Scent Profile Analysis</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Odor Classifier Output</h4>", unsafe_allow_html=True)
             
             try:
                 with st.spinner("Computing high-dimensional descriptors..."):
@@ -857,12 +808,12 @@ elif menu == "🔬 Molecular Odor Predictor":
                     
                 st.markdown(
                     f"""
-                    <div class="glass-card" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(139, 92, 246, 0.03) 100%); border: 1px solid rgba(212,175,55,0.2); margin-top:2px;">
-                        <h5 style="margin: 0px 0px 8px 0px; font-family: 'Outfit', sans-serif; color:#f3d060; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">CLASSIFICATION RESULT</h5>
-                        <div style="font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 700; color: #ffffff; text-transform: capitalize; margin-bottom:15px; letter-spacing: 0.5px;">
-                            ✨ {predicted_class}
+                    <div class="glass-card" style="border: 1px solid #22222d;">
+                        <h5 style="margin: 0px 0px 8px 0px; font-family: 'Outfit', sans-serif; color:#717188; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Predicted Classification</h5>
+                        <div style="font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: #f3d060; text-transform: uppercase; margin-bottom:15px; letter-spacing: 1px;">
+                            {predicted_class}
                         </div>
-                        <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.65;">
+                        <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.7; font-weight: 300;">
                             Our random forest classifier analyzed the 250 high-impact topological and electrostatic molecular descriptors computed for this molecule. The predicted odor classification represents the strongest olfactory group associated with this chemical's specific geometry and orbital properties.
                         </p>
                     </div>
@@ -872,25 +823,25 @@ elif menu == "🔬 Molecular Odor Predictor":
                 
                 mol_obj = Chem.MolFromSmiles(input_smiles)
                 if mol_obj:
-                    st.markdown("<h5 style='font-family: \"Outfit\", sans-serif; font-size: 15px; color: #e2e8f0; margin-top:15px;'>🧬 Molecular Properties</h5>", unsafe_allow_html=True)
-                    st.markdown(f"- **Chemical Formula:** `{Chem.rdMolDescriptors.CalcMolFormula(mol_obj)}`")
-                    st.markdown(f"- **Molecular Mass:** `{Chem.rdMolDescriptors.CalcExactMolWt(mol_obj):.2f} g/mol`")
-                    st.markdown(f"- **Heavy Atom Count:** `{mol_obj.GetNumHeavyAtoms()}`")
+                    st.markdown("<h5 style='font-family: \"Outfit\", sans-serif; font-size: 13px; color: #cbd5e1; margin-top:15px; text-transform: uppercase; letter-spacing: 1px;'>Properties</h5>", unsafe_allow_html=True)
+                    st.markdown(f"- **Formula:** `{Chem.rdMolDescriptors.CalcMolFormula(mol_obj)}`")
+                    st.markdown(f"- **Mass:** `{Chem.rdMolDescriptors.CalcExactMolWt(mol_obj):.2f} g/mol`")
+                    st.markdown(f"- **Heavy Atoms:** `{mol_obj.GetNumHeavyAtoms()}`")
                     st.markdown(f"- **Rotatable Bonds:** `{Chem.rdMolDescriptors.CalcNumRotatableBonds(mol_obj)}`")
                     
             except Exception as e:
                 st.exception(e)
 
 # Page 5: ML Dashboard & Features
-elif menu == "📊 ML Dashboard & Features":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px;'>📊 ML Dashboard & Feature Analytics</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94a3b8; margin-bottom: 25px;'>Dissect classifier parameters, topological weight matrices, and execute real-time model retraining.</p>", unsafe_allow_html=True)
+elif menu == "ML Dashboard & Features":
+    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>ML Dashboard & Features</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Analyze feature weighting metrics and execute model retraining loops.</p>", unsafe_allow_html=True)
     
     col_d1, col_d2 = st.columns([2, 1])
     
     with col_d1:
-        st.markdown("<h3 style='color: #f3d060; font-size: 24px; margin-bottom: 15px;'>📈 Topological Descriptor Ranking</h3>", unsafe_allow_html=True)
-        st.markdown("Visualizing the top **15 molecular descriptors** ranked by **Mutual Information Score** in classifying chemical odors.")
+        st.markdown("<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;'>Topological Descriptor Weightings</h3>", unsafe_allow_html=True)
+        st.markdown("Top 15 molecular descriptors ranked by Mutual Information Score in classifying chemical odors.")
         
         # Load feature importance
         if os.path.exists("data/feature_importance.csv"):
@@ -898,9 +849,9 @@ elif menu == "📊 ML Dashboard & Features":
             top_importance = importance_df.head(15)
             
             chart = alt.Chart(top_importance).mark_bar(
-                cornerRadiusTopRight=6,
-                cornerRadiusBottomRight=6,
-                color="#d4af37" # Gold bar charts!
+                cornerRadiusTopRight=0,
+                cornerRadiusBottomRight=0,
+                color="#b28b12" # Solid gold bars
             ).encode(
                 x=alt.X('mi_score:Q', title='Mutual Information Score'),
                 y=alt.Y('feature:N', sort='-x', title='Mordred Descriptor'),
@@ -908,8 +859,8 @@ elif menu == "📊 ML Dashboard & Features":
             ).properties(
                 height=450
             ).configure_axis(
-                labelColor='#94a3b8',
-                titleColor='#cbd5e1',
+                labelColor='#717188',
+                titleColor='#a1a1b5',
                 grid=False
             ).configure_view(
                 strokeOpacity=0
@@ -920,35 +871,35 @@ elif menu == "📊 ML Dashboard & Features":
             st.info("No feature importance data found. Please run the training pipeline first.")
             
     with col_d2:
-        st.markdown("<h3 style='color: #f3d060; font-size: 24px; margin-bottom: 15px;'>⚙️ Hyperparameters</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;'>Hyperparameters</h3>", unsafe_allow_html=True)
         
         st.markdown(
             """
-            <div class="glass-card" style="margin-bottom: 25px;">
-                <h5 style="margin-top: 0px; font-family: 'Outfit', sans-serif; color: #f3d060; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Model Configurations</h5>
-                <p style="margin-bottom: 6px; font-size:13.5px;"><b>Core Estimator:</b> Random Forest Classifier</p>
-                <p style="margin-bottom: 6px; font-size:13.5px;"><b>Decision Trees:</b> 200 Estimators</p>
-                <p style="margin-bottom: 6px; font-size:13.5px;"><b>Pruned Descriptors:</b> 250 Top Features</p>
-                <p style="margin-bottom: 0px; font-size:13.5px;"><b>Cross-Val Accuracy:</b> 60.0%</p>
+            <div class="glass-card">
+                <h5 style="margin-top: 0px; font-family: 'Outfit', sans-serif; color: #f3d060; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Odor Estimator Profile</h5>
+                <p style="margin-bottom: 8px; font-size:13.5px; font-weight: 300;"><b>Classifier:</b> Random Forest Classifier</p>
+                <p style="margin-bottom: 8px; font-size:13.5px; font-weight: 300;"><b>Trees:</b> 200 Estimators</p>
+                <p style="margin-bottom: 8px; font-size:13.5px; font-weight: 300;"><b>Selected Features:</b> 250 Descriptors</p>
+                <p style="margin-bottom: 0px; font-size:13.5px; font-weight: 300;"><b>Cross-Val Accuracy:</b> 60.0%</p>
             </div>
             """,
             unsafe_allow_html=True
         )
         
-        st.markdown("<h3 style='color: #f3d060; font-size: 24px; margin-bottom: 15px;'>🔄 Retraining Trigger</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;'>Retraining Loop</h3>", unsafe_allow_html=True)
         st.markdown("Initiate a comprehensive end-to-end retraining cycle over the olfactive chemistry dataset. This recomputes descriptors, executes mutual information filtering, and fits a clean estimator.")
         
-        if st.button("🚀 Execute Retraining Loop"):
-            with st.spinner("Featurizing compounds and running scikit-learn optimization..."):
+        if st.button("Execute Retraining"):
+            with st.spinner("Executing optimization pipeline..."):
                 try:
                     FINAL_DATASET_CSV = "data/final_dataset.csv"
                     train_model(FINAL_DATASET_CSV)
-                    st.success("🎉 ML Pipeline Retrained and Saved Successfully!")
+                    st.success("ML Pipeline Retrained and Saved Successfully!")
                     st.toast("Model saved to models/odor_model.pkl")
                 except Exception as e:
                     st.error(f"Retraining failed: {e}")
                     
-        st.markdown("<h3 style='color: #f3d060; font-size: 22px; margin-top: 25px; margin-bottom: 12px;'>📚 Topological Glossary</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #f3d060; font-size: 20px; font-weight: 300; margin-top: 25px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;'>Glossary</h3>", unsafe_allow_html=True)
         st.markdown(
             """
             - **`MW`**: Exact compound molecular weight.
