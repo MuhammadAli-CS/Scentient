@@ -6,8 +6,14 @@ import sys
 import json
 import joblib
 import altair as alt
+import textwrap
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
+
+def clean_html(html_str):
+    dedented = textwrap.dedent(html_str)
+    return " ".join(line.strip() for line in dedented.splitlines())
+
 
 # Ensure src/ is in python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -363,7 +369,7 @@ def get_pyramid_html(top_notes, mid_notes, base_notes, accords):
     
     accords_html = "".join([f"<span class='accord-text'>• {a.upper()}</span>" for a in accords])
     
-    return f"""
+    return clean_html(f"""
     <div class="pyramid-container">
         <div class="pyramid-tier">
             <div class="tier-header tier-top">Top Notes</div>
@@ -381,16 +387,16 @@ def get_pyramid_html(top_notes, mid_notes, base_notes, accords):
             {accords_html}
         </div>
     </div>
-    """
+    """)
 
 # ----------------- SIDEBAR BRANDING & NAVIGATION -----------------
 
 with st.sidebar:
-    st.markdown("""
+    st.markdown(clean_html("""
     <div class="brand-container">
         <span class="brand-title">SCENTIENT</span>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
     
     st.markdown("<p style='font-family: \"Outfit\", sans-serif; font-size: 10px; color: #d4af37; margin-top: -24px; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; font-weight: 400; text-align: center;'>Molecular Olfaction</p>", unsafe_allow_html=True)
     
@@ -531,7 +537,7 @@ if menu == "Home & Discovery Explorer":
             
             pyramid_html = get_pyramid_html(top_notes, mid_notes, base_notes, accord_list)
             
-            card_content = f"""
+            card_content = clean_html(f"""
             <div class="glass-card">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                     <div>
@@ -545,7 +551,7 @@ if menu == "Home & Discovery Explorer":
                 </div>
                 {pyramid_html}
             </div>
-            """
+            """)
             target_col.markdown(card_content, unsafe_allow_html=True)
     else:
         st.info("No fragrances match your filter parameters. Try expanding your search criteria!")
@@ -608,7 +614,7 @@ elif menu == "Semantic Scent Search":
                 
                 pyramid_html = get_pyramid_html(top_notes, mid_notes, base_notes, accord_list)
                 
-                card_content = f"""
+                card_content = clean_html(f"""
                 <div class="glass-card">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                         <div>
@@ -622,7 +628,7 @@ elif menu == "Semantic Scent Search":
                     </div>
                     {pyramid_html}
                 </div>
-                """
+                """)
                 target_col.markdown(card_content, unsafe_allow_html=True)
         else:
             st.warning("No matches found. Try entering alternative scent descriptors!")
@@ -720,7 +726,7 @@ elif menu == "Dupe & Alternative Discovery":
                 acc_list = [full_dupe[f'mainaccord{k}'] for k in range(1, 6) if pd.notna(full_dupe[f'mainaccord{k}'])]
                 accords_html = "".join([f"<span class='accord-text'>• {a.upper()}</span>" for a in acc_list])
                 
-                card_content = f"""
+                card_content = clean_html(f"""
                 <div class="glass-card">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                         <div>
@@ -742,7 +748,7 @@ elif menu == "Dupe & Alternative Discovery":
                         </div>
                     </div>
                 </div>
-                """
+                """)
                 target_col.markdown(card_content, unsafe_allow_html=True)
         else:
             st.error(f"Could not locate matching perfumes for '{query_search}'. Please refine your search entry.")
