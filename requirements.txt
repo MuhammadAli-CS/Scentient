@@ -27,5 +27,3 @@ urllib3==2.3.0
 watchdog==6.0.0
 networkx==3.4.2
 six==1.17.0
-rdkit==2024.3.5
-mordred==1.2.0

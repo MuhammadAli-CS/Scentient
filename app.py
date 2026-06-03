@@ -7,8 +7,15 @@ import json
 import joblib
 import altair as alt
 import textwrap
-from rdkit import Chem
-from rdkit.Chem.Draw import rdMolDraw2D
+# Optional chemistry packages (not available on Python 3.14 cloud builds)
+try:
+    from rdkit import Chem
+    from rdkit.Chem.Draw import rdMolDraw2D
+    RDKIT_AVAILABLE = True
+except ImportError:
+    RDKIT_AVAILABLE = False
+    Chem = None
+    rdMolDraw2D = None
 
 def clean_html(html_str):
     dedented = textwrap.dedent(html_str)
@@ -18,8 +25,13 @@ def clean_html(html_str):
 # Ensure src/ is in python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from dupe_finder import DupeFinder
-from predict import predict_smiles, featurize_smiles_in_memory
-from train_model import train_model
+try:
+    from predict import predict_smiles, featurize_smiles_in_memory
+    from train_model import train_model
+except (ImportError, Exception):
+    predict_smiles = None
+    featurize_smiles_in_memory = None
+    train_model = None
 
 # Page config
 st.set_page_config(
@@ -423,7 +435,9 @@ with st.sidebar:
 
 # ----------------- RDKIT MOLECULE RENDERING -----------------
 
-def render_molecule_svg(smiles):
+def render_molecule_svg(smiles):  # noqa: E302
+    if not RDKIT_AVAILABLE:
+        return None
     try:
         mol = Chem.MolFromSmiles(smiles)
         if not mol:
@@ -790,48 +804,63 @@ elif menu == "Molecular Odor Predictor":
     input_smiles = st.text_input("Or input a custom molecular SMILES string:", selected_smiles)
     
     if input_smiles:
-        col_pred1, col_pred2 = st.columns([1, 1])
-        
-        with col_pred1:
-            st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Molecular Topology</h4>", unsafe_allow_html=True)
-            svg_text = render_molecule_svg(input_smiles)
-            if svg_text:
-                st.markdown(f"<div class='mol-container'>{svg_text}</div>", unsafe_allow_html=True)
-            else:
-                st.error("Invalid SMILES structure. Please verify your organic chemical formula.")
-                
-        with col_pred2:
-            st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Odor Classifier Output</h4>", unsafe_allow_html=True)
-            
-            try:
-                with st.spinner("Computing high-dimensional descriptors..."):
-                    predicted_class = predict_smiles(input_smiles, models_dir="models")
-                    
-                st.markdown(
-                    f"""
-                    <div class="glass-card" style="border: 1px solid #22222d;">
-                        <h5 style="margin: 0px 0px 8px 0px; font-family: 'Outfit', sans-serif; color:#717188; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Predicted Classification</h5>
-                        <div style="font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: #f3d060; text-transform: uppercase; margin-bottom:15px; letter-spacing: 1px;">
-                            {predicted_class}
+        if not RDKIT_AVAILABLE:
+            st.markdown(
+                """
+                <div class="glass-card" style="border: 1px solid #22222d; text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 40px; margin-bottom: 16px;">🧪</div>
+                    <h4 style="font-family: 'Outfit', sans-serif; color: #d4af37; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Molecular Analysis Unavailable</h4>
+                    <p style="color: #717188; font-size: 13px; line-height: 1.7; max-width: 420px; margin: 0 auto;">
+                        The molecular rendering and odor prediction engine requires <strong>RDKit</strong> and <strong>Mordred</strong>,
+                        which are not available in this cloud environment. Run the app locally to access full SMILES analysis.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            col_pred1, col_pred2 = st.columns([1, 1])
+
+            with col_pred1:
+                st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Molecular Topology</h4>", unsafe_allow_html=True)
+                svg_text = render_molecule_svg(input_smiles)
+                if svg_text:
+                    st.markdown(f"<div class='mol-container'>{svg_text}</div>", unsafe_allow_html=True)
+                else:
+                    st.error("Invalid SMILES structure. Please verify your organic chemical formula.")
+
+            with col_pred2:
+                st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Odor Classifier Output</h4>", unsafe_allow_html=True)
+
+                try:
+                    with st.spinner("Computing high-dimensional descriptors..."):
+                        predicted_class = predict_smiles(input_smiles, models_dir="models")
+
+                    st.markdown(
+                        f"""
+                        <div class="glass-card" style="border: 1px solid #22222d;">
+                            <h5 style="margin: 0px 0px 8px 0px; font-family: 'Outfit', sans-serif; color:#717188; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Predicted Classification</h5>
+                            <div style="font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: #f3d060; text-transform: uppercase; margin-bottom:15px; letter-spacing: 1px;">
+                                {predicted_class}
+                            </div>
+                            <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.7; font-weight: 300;">
+                                Our random forest classifier analyzed the 250 high-impact topological and electrostatic molecular descriptors computed for this molecule. The predicted odor classification represents the strongest olfactory group associated with this chemical's specific geometry and orbital properties.
+                            </p>
                         </div>
-                        <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.7; font-weight: 300;">
-                            Our random forest classifier analyzed the 250 high-impact topological and electrostatic molecular descriptors computed for this molecule. The predicted odor classification represents the strongest olfactory group associated with this chemical's specific geometry and orbital properties.
-                        </p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                
-                mol_obj = Chem.MolFromSmiles(input_smiles)
-                if mol_obj:
-                    st.markdown("<h5 style='font-family: \"Outfit\", sans-serif; font-size: 13px; color: #cbd5e1; margin-top:15px; text-transform: uppercase; letter-spacing: 1px;'>Properties</h5>", unsafe_allow_html=True)
-                    st.markdown(f"- **Formula:** `{Chem.rdMolDescriptors.CalcMolFormula(mol_obj)}`")
-                    st.markdown(f"- **Mass:** `{Chem.rdMolDescriptors.CalcExactMolWt(mol_obj):.2f} g/mol`")
-                    st.markdown(f"- **Heavy Atoms:** `{mol_obj.GetNumHeavyAtoms()}`")
-                    st.markdown(f"- **Rotatable Bonds:** `{Chem.rdMolDescriptors.CalcNumRotatableBonds(mol_obj)}`")
-                    
-            except Exception as e:
-                st.exception(e)
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    mol_obj = Chem.MolFromSmiles(input_smiles)
+                    if mol_obj:
+                        st.markdown("<h5 style='font-family: \"Outfit\", sans-serif; font-size: 13px; color: #cbd5e1; margin-top:15px; text-transform: uppercase; letter-spacing: 1px;'>Properties</h5>", unsafe_allow_html=True)
+                        st.markdown(f"- **Formula:** `{Chem.rdMolDescriptors.CalcMolFormula(mol_obj)}`")
+                        st.markdown(f"- **Mass:** `{Chem.rdMolDescriptors.CalcExactMolWt(mol_obj):.2f} g/mol`")
+                        st.markdown(f"- **Heavy Atoms:** `{mol_obj.GetNumHeavyAtoms()}`")
+                        st.markdown(f"- **Rotatable Bonds:** `{Chem.rdMolDescriptors.CalcNumRotatableBonds(mol_obj)}`")
+
+                except Exception as e:
+                    st.exception(e)
 
 # Page 5: ML Dashboard & Features
 elif menu == "ML Dashboard & Features":
