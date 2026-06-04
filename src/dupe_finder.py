@@ -4,8 +4,11 @@ import logging
 from collections import Counter
 try:
     from rapidfuzz import process, fuzz
+    RAPIDFUZZ_AVAILABLE = True
 except ImportError:
-    pass # Let it fail gracefully if someone tries without rapidfuzz
+    RAPIDFUZZ_AVAILABLE = False
+    process = None
+    fuzz = None
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -115,6 +118,8 @@ class DupeFinder:
         return len(set(accords_a) & set(accords_b)) / union if union > 0 else 0
 
     def find_dupes(self, query, top_n=10, note_weight=0.75, accord_weight=0.25):
+        if not RAPIDFUZZ_AVAILABLE:
+            raise ImportError("rapidfuzz is required for dupe finding. Install it with: pip install rapidfuzz")
         query_norm = str(query).lower().replace("-", " ")
         
         # RapidFuzz match

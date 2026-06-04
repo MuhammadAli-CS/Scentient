@@ -489,7 +489,7 @@ if menu == "Home & Discovery Explorer":
     with hero_col2:
         img_file = "generic_scent.png" if os.path.exists("generic_scent.png") else "minimalist_perfume.png"
         if os.path.exists(img_file):
-            st.image(img_file, use_container_width=True)
+            st.image(img_file, width='stretch')
             
     st.markdown("<hr style='border-color: #111115; margin: 35px 0px;'>", unsafe_allow_html=True)
     st.markdown("<h2 style='font-size: 28px; font-weight: 300; color: #f3d060; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;'>Olfactive Discovery Library</h2>", unsafe_allow_html=True)
