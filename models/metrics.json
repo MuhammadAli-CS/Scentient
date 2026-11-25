@@ -1,0 +1,57 @@
+{
+  "trained_at": "2026-11-25 22:33 UTC",
+  "classifier": "RandomForestClassifier",
+  "n_estimators": 300,
+  "n_molecules": 93,
+  "n_features": 250,
+  "n_classes": 11,
+  "cv_folds": 5,
+  "cv_accuracy": 0.6344,
+  "chance_accuracy": 0.0909,
+  "per_class": {
+    "amber": {
+      "f1": 0.6,
+      "support": 6
+    },
+    "animalic": {
+      "f1": 0.545,
+      "support": 5
+    },
+    "citrus": {
+      "f1": 0.556,
+      "support": 9
+    },
+    "floral": {
+      "f1": 0.667,
+      "support": 16
+    },
+    "fruity": {
+      "f1": 0.696,
+      "support": 11
+    },
+    "green": {
+      "f1": 0.571,
+      "support": 8
+    },
+    "minty": {
+      "f1": 0.615,
+      "support": 7
+    },
+    "musk": {
+      "f1": 0.778,
+      "support": 8
+    },
+    "spicy": {
+      "f1": 0.706,
+      "support": 6
+    },
+    "sweet": {
+      "f1": 0.75,
+      "support": 9
+    },
+    "woody": {
+      "f1": 0.375,
+      "support": 8
+    }
+  }
+}

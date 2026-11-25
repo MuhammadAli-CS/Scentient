@@ -1,74 +1,71 @@
-import pandas as pd
-import numpy as np
-import joblib
 import json
 import logging
 import os
+from functools import lru_cache
+
+import joblib
+import pandas as pd
 from rdkit import Chem
-from mordred import Calculator, descriptors
+
+from featurize import get_calculator
+from paths import MODELS_DIR
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+
 
 def featurize_smiles_in_memory(smiles):
     mol = Chem.MolFromSmiles(smiles)
     if not mol:
         raise ValueError(f"Invalid SMILES string: {smiles}")
-
-    calc = Calculator(descriptors, ignore_3D=True)
     try:
-        desc_dict = calc(mol).asdict()
+        desc_dict = get_calculator()(mol).asdict()
     except Exception as e:
         raise RuntimeError(f"Error calculating descriptors: {e}")
-        
-    df = pd.DataFrame([desc_dict])
-    df.fillna(0, inplace=True)
-    return df
+    return pd.DataFrame([desc_dict])
 
-def predict_smiles(smiles, models_dir="models"):
-    # Load required artifacts
+
+@lru_cache(maxsize=4)
+def _load_artifacts(models_dir, stamp):
+    # `stamp` is the model file's mtime so a retrain invalidates the cache.
     try:
-        with open(os.path.join(models_dir, 'clean_columns.json'), 'r') as f:
+        with open(os.path.join(models_dir, 'clean_columns.json')) as f:
             clean_columns = json.load(f)
-        
-        with open(os.path.join(models_dir, 'top_features.json'), 'r') as f:
+        with open(os.path.join(models_dir, 'top_features.json')) as f:
             top_features = json.load(f)
-            
         scaler = joblib.load(os.path.join(models_dir, 'scaler.pkl'))
         model = joblib.load(os.path.join(models_dir, 'odor_model.pkl'))
         le = joblib.load(os.path.join(models_dir, 'label_encoder.pkl'))
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"Missing model artifact. Ensure you have run the training pipeline first. {e}")
+        raise FileNotFoundError(f"Missing model artifact. Run the training pipeline first. {e}")
+    return clean_columns, top_features, scaler, model, le
 
-    # 1. Featurize
-    raw_features = featurize_smiles_in_memory(smiles)
 
-    # 2. Extract strictly clean_columns (fill missing with 0 just in case)
-    # mordred should output exactly the same columns, but let's be safe
-    for col in clean_columns:
-        if col not in raw_features.columns:
-            raw_features[col] = 0
-    clean_df = raw_features[clean_columns]
-    
-    # 3. Convert all to numeric
-    clean_df = clean_df.apply(pd.to_numeric, errors='coerce').fillna(0)
+def load_artifacts(models_dir=MODELS_DIR):
+    stamp = os.path.getmtime(os.path.join(models_dir, 'odor_model.pkl'))
+    return _load_artifacts(models_dir, stamp)
 
-    # 4. Scale
-    scaled_array = scaler.transform(clean_df)
-    scaled_df = pd.DataFrame(scaled_array, columns=clean_columns)
 
-    # 5. Filter to top_features
-    final_X = scaled_df[top_features]
+def predict_smiles_proba(smiles, models_dir=MODELS_DIR):
+    """Return a Series of class probabilities, highest first."""
+    clean_columns, top_features, scaler, model, le = load_artifacts(models_dir)
 
-    # 6. Predict
-    pred_encoded = model.predict(final_X)
-    pred_label = le.inverse_transform(pred_encoded)
-    
-    return pred_label[0]
+    raw = featurize_smiles_in_memory(smiles)
+    raw = raw.reindex(columns=clean_columns, fill_value=0)
+    raw = raw.apply(pd.to_numeric, errors='coerce').fillna(0)
+
+    scaled = pd.DataFrame(scaler.transform(raw), columns=clean_columns)
+    proba = model.predict_proba(scaled[top_features])[0]
+    labels = le.inverse_transform(model.classes_)
+    return pd.Series(proba, index=labels).sort_values(ascending=False)
+
+
+def predict_smiles(smiles, models_dir=MODELS_DIR):
+    return predict_smiles_proba(smiles, models_dir).index[0]
+
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
-        smiles = sys.argv[1]
-        print(f"Predicted odor for {smiles}: {predict_smiles(smiles)}")
+        print(predict_smiles_proba(sys.argv[1]).head(3).to_string())
     else:
         print("Usage: python predict.py <SMILES>")

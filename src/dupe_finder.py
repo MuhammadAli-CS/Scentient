@@ -25,17 +25,29 @@ SYNONYMS = {
     "pink peppercorn": "pink pepper", "pepper essence": "pepper"
 }
 
+# Product formats that share a name with the perfume but are not the perfume itself.
+NON_PERFUME_WORDS = ("hair mist", "body mist", "body lotion", "shower gel", "deodorant",
+                     "body cream", "after shave", "aftershave", "soap", "candle", "body spray",
+                     "hair perfume", "body oil", "bath")
+
 DUPE_BRANDS = ["lattafa", "armaf", "afnan", "fragrance world", "maison alhambra", "zara", "paris corner"]
 
 class DupeFinder:
-    def __init__(self, data_path="data/fragrantica_cleaned.csv"):
+    def __init__(self, data_path=None):
+        if data_path is None:
+            from paths import PERFUMES_CSV
+            data_path = PERFUMES_CSV
         logging.info(f"Loading fragrance dataset from {data_path}")
         self.df = pd.read_csv(data_path, sep=';')
         if 'Rating Value' in self.df.columns:
             self.df['Rating Value'] = pd.to_numeric(
-                self.df['Rating Value'].astype(str).str.replace(',', '.'), 
+                self.df['Rating Value'].astype(str).str.replace(',', '.'),
                 errors='coerce'
             ).fillna(0.0)
+        self.df['Rating Count'] = pd.to_numeric(
+            self.df['Rating Count'].astype(str).str.replace(',', ''), errors='coerce'
+        ).fillna(0)
+        self.df = self.df.reset_index(drop=True)
         self._prepare_data()
 
     def _clean_and_split(self, text):
@@ -73,7 +85,39 @@ class DupeFinder:
         self.rarity_weights = {note: np.log(1 + (max_freq / count)) for note, count in freq.items()}
         
         # Search key
-        self.df['SearchKey'] = (self.df['Brand'].str.lower() + " " + self.df['Perfume'].str.lower().str.replace("-", " "))
+        self.df['SearchKey'] = (
+            self.df['Brand'].str.lower().str.replace("-", " ") + " "
+            + self.df['Perfume'].str.lower().str.replace("-", " ")
+        )
+        self._is_variant = self.df['SearchKey'].apply(lambda k: any(w in k for w in NON_PERFUME_WORDS))
+
+    def search(self, query, limit=8):
+        """Rank catalogue entries for a free-text name.
+
+        Fuzzy score decides first. Ties (common with token_set_ratio, which scores
+        "baccarat rouge 540" and "baccarat rouge 540 scented hair mist" equally)
+        are broken by preferring real perfumes over hair mists and lotions, then by
+        how many people have rated the entry.
+        """
+        if not RAPIDFUZZ_AVAILABLE:
+            raise ImportError("rapidfuzz is required for dupe finding. Install it with: pip install rapidfuzz")
+        query_norm = str(query).lower().replace("-", " ").strip()
+        if not query_norm:
+            return []
+        keys = self.df['SearchKey'].tolist()
+        candidates = process.extract(query_norm, keys, limit=max(limit * 5, 40), scorer=fuzz.token_set_ratio)
+        ranked = []
+        for _, score, idx in candidates:
+            # Small bonus for a closer full-string match, so "aventus" beats "aventus for her".
+            tiebreak = fuzz.ratio(query_norm, keys[idx]) / 100
+            ranked.append((score, not self._is_variant.iat[idx], tiebreak,
+                           self.df['Rating Count'].iat[idx], idx))
+        ranked.sort(reverse=True)
+        return [(r[4], r[0]) for r in ranked[:limit]]
+
+    def describe(self, idx):
+        row = self.df.iloc[idx]
+        return f"{str(row['Perfume']).replace('-', ' ').title()} by {str(row['Brand']).replace('-', ' ').title()}"
 
     def _calculate_cross_layer_sim(self, notes_a, notes_b):
         """
@@ -117,31 +161,28 @@ class DupeFinder:
         union = len(set(accords_a) | set(accords_b))
         return len(set(accords_a) & set(accords_b)) / union if union > 0 else 0
 
-    def find_dupes(self, query, top_n=10, note_weight=0.75, accord_weight=0.25):
-        if not RAPIDFUZZ_AVAILABLE:
-            raise ImportError("rapidfuzz is required for dupe finding. Install it with: pip install rapidfuzz")
-        query_norm = str(query).lower().replace("-", " ")
-        
-        # RapidFuzz match
-        matches = process.extract(query_norm, self.df['SearchKey'].tolist(), limit=1, scorer=fuzz.token_set_ratio)
-        if not matches:
-            logging.warning(f"No match found for query: {query}")
-            return None
-            
-        best_match_key = matches[0][0]
-        confidence = matches[0][1]
-        
-        idx = self.df[self.df['SearchKey'] == best_match_key].index[0]
+    def find_dupes(self, query=None, top_n=10, note_weight=0.75, accord_weight=0.25, base_idx=None):
+        """Return the closest perfumes to `query`, or to the row at `base_idx` if given."""
+        if base_idx is None:
+            matches = self.search(query, limit=1)
+            if not matches:
+                logging.warning(f"No match found for query: {query}")
+                return None
+            idx, confidence = matches[0]
+        else:
+            idx, confidence = base_idx, 100.0
         base = self.df.iloc[idx]
-        
+
         logging.info(f"Matched input to: {base['Perfume']} by {base['Brand']} (Confidence: {confidence:.1f}%)")
 
         notes_a = {'top': base['Top'], 'mid': base['Middle'], 'base': base['Base']}
         accords_a = base['Accords']
 
         results = []
+        base_key = base['SearchKey']
         for i, row in self.df.iterrows():
-            if i == idx:
+            # Skip the perfume itself and its own hair mists / lotions.
+            if i == idx or (self._is_variant.iat[i] and base_key in row['SearchKey']):
                 continue
                 
             notes_b = {'top': row['Top'], 'mid': row['Middle'], 'base': row['Base']}
@@ -169,6 +210,7 @@ class DupeFinder:
                 sim_score *= 1.05
             
             results.append({
+                'index': i,
                 'Perfume': row['Perfume'],
                 'Brand': row['Brand'],
                 'Year': row['Year'],

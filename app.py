@@ -1,941 +1,519 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
+import base64
+import html
+import json
 import os
 import sys
-import json
-import joblib
+
 import altair as alt
-import textwrap
-# Optional chemistry packages (not available on Python 3.14 cloud builds)
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+
+from dupe_finder import DUPE_BRANDS, DupeFinder  # noqa: E402
+from paths import (IMPORTANCE_CSV, LABELS_CSV, METRICS_JSON,  # noqa: E402
+                   PERFUMES_CSV, SMILES_CSV)
+
+# RDKit draws structures; Mordred computes the descriptors the classifier needs.
+# Either can be missing on a minimal install, so each feature degrades on its own.
 try:
     from rdkit import Chem
+    from rdkit.Chem import Crippen, Descriptors, rdDepictor, rdMolDescriptors
     from rdkit.Chem.Draw import rdMolDraw2D
     RDKIT_AVAILABLE = True
 except ImportError:
     RDKIT_AVAILABLE = False
-    Chem = None
-    rdMolDraw2D = None
 
-def clean_html(html_str):
-    dedented = textwrap.dedent(html_str)
-    return " ".join(line.strip() for line in dedented.splitlines())
-
-
-# Ensure src/ is in python path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-from dupe_finder import DupeFinder
 try:
-    from predict import predict_smiles, featurize_smiles_in_memory
-    from train_model import train_model
-except (ImportError, Exception):
-    predict_smiles = None
-    featurize_smiles_in_memory = None
-    train_model = None
+    from predict import predict_smiles_proba
+    PREDICT_AVAILABLE = True
+except Exception:
+    PREDICT_AVAILABLE = False
 
-# Page config
-st.set_page_config(
-    page_title="Scentient - Molecular Olfaction Platform",
-    page_icon="🧪",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Scentient", page_icon=":material/science:", layout="wide")
 
-# Custom premium CSS styling (ultra-minimalist luxury Gold & Obsidian theme)
-st.markdown("""
+ACCENT = "#9a3d1c"
+INK = "#22201c"
+MUTED = "#6f695f"
+RULE = "#dcd6ca"
+
+st.html(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
-    
-    /* Font overrides */
-    html, body, [class*="css"], .stMarkdown {
-        font-family: 'Inter', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, .brand-title, .main-title {
-        font-family: 'Cormorant Garamond', serif;
-        font-weight: 500;
-        letter-spacing: -0.5px;
-    }
-    .sub-title, .section-title, .widget-title {
-        font-family: 'Outfit', sans-serif;
-        font-weight: 500;
-        letter-spacing: 1px;
-    }
-    
-    /* Deep Obsidian Black Matte Background */
-    .stApp {
-        background: #050507;
-        color: #a1a1b5;
-    }
-    
-    /* Sidebar Overhaul: Ultra-Clean luxury Menu */
-    section[data-testid="stSidebar"] {
-        background-color: #030304 !important;
-        border-right: 1px solid #111115 !important;
-    }
-    section[data-testid="stSidebar"] hr {
-        border-color: #111115 !important;
-    }
-    
-    /* Navigation Radio Items - Clean Minimal Links */
-    div[data-testid="stSidebar"] div.stRadio > div {
-        background-color: transparent !important;
-        padding: 5px !important;
-    }
-    div[data-testid="stSidebar"] div.stRadio label {
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0px !important;
-        padding: 10px 0px 10px 15px !important;
-        margin-bottom: 12px !important;
-        color: #717188 !important;
-        transition: all 0.3s ease !important;
-        width: 100% !important;
-        display: flex !important;
-        align-items: center !important;
-        cursor: pointer !important;
-        border-left: 1px solid transparent !important;
-    }
-    div[data-testid="stSidebar"] div.stRadio label:hover {
-        color: #e2e8f0 !important;
-        padding-left: 20px !important;
-    }
-    div[data-testid="stSidebar"] div.stRadio label[data-checked="true"] {
-        color: #d4af37 !important;
-        font-weight: 500 !important;
-        border-left: 2px solid #d4af37 !important;
-        padding-left: 20px !important;
-        box-shadow: none !important;
-    }
-    div[data-testid="stSidebar"] div.stRadio label > div:first-child {
-        display: none !important; /* Hide native radio circles */
-    }
-    
-    /* Minimalist Inputs and Selectboxes */
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] > div,
-    div[data-testid="stNumberInput"] input {
-        background-color: #0b0b0d !important;
-        border: 1px solid #16161f !important;
-        border-radius: 6px !important;
-        color: #cbd5e1 !important;
-        transition: all 0.3s ease !important;
-        backdrop-filter: none !important;
-        box-shadow: none !important;
-    }
-    div[data-baseweb="select"] > div:hover,
-    div[data-baseweb="input"] > div:hover,
-    div[data-testid="stNumberInput"] input:hover {
-        border-color: #2b2b38 !important;
-    }
-    div[data-baseweb="select"] > div:focus-within,
-    div[data-baseweb="input"] > div:focus-within {
-        border-color: #d4af37 !important;
-        box-shadow: none !important;
-    }
-    
-    /* Solid Flat Burnished Gold Buttons */
-    div.stButton > button {
-        background: #b28b12 !important;
-        color: #000000 !important;
-        font-family: 'Outfit', sans-serif !important;
-        font-weight: 500 !important;
-        border: none !important;
-        border-radius: 6px !important;
-        padding: 10px 24px !important;
-        transition: all 0.3s ease !important;
-        box-shadow: none !important;
-        text-transform: uppercase;
-        font-size: 11px !important;
-        letter-spacing: 1.5px !important;
-        width: 100%;
-    }
-    div.stButton > button:hover {
-        background: #d4af37 !important;
-        transform: none !important;
-        box-shadow: none !important;
-        color: #000000 !important;
-    }
-    div.stButton > button:active {
-        background: #90700d !important;
-    }
-    
-    /* Refined Gold Slider */
-    div.stSlider > div {
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-    }
-    div.stSlider [data-testid="stThumb"] {
-        background-color: #d4af37 !important;
-        border: 1px solid #000 !important;
-        box-shadow: none !important;
-        border-radius: 50% !important;
-        width: 14px !important;
-        height: 14px !important;
-    }
-    div.stSlider [style*="background-color: rgb(255, 75, 75)"] {
-        background-color: #d4af37 !important;
-    }
-    div.stSlider [style*="background-color: rgb(244, 63, 94)"] {
-        background-color: #d4af37 !important;
-    }
-    div.stSlider [data-testid="stSliderTrack"] > div {
-        background-color: #16161f !important;
-    }
-    
-    /* Sidebar Branding */
-    .brand-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 35px;
-        padding: 20px 10px;
-        background: transparent;
-        border-radius: 0px;
-        border: none;
-        border-bottom: 1px solid #111115;
-        box-shadow: none;
-    }
-    .brand-title {
-        font-family: 'Cormorant Garamond', serif;
-        font-size: 24px;
-        font-weight: 300;
-        color: #e2e8f0;
-        letter-spacing: 6px;
-        text-transform: uppercase;
-        margin: 0px;
-    }
-    
-    /* Matte Luxury Cards */
-    .glass-card {
-        background: #0b0b0e;
-        border: 1px solid #14141a;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: none;
-        margin-bottom: 24px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    .glass-card:hover {
-        border-color: #2b2b36;
-    }
-    
-    /* Rating & Gender labels - Monochromatic Minimalist */
-    .rating-pill {
-        background: transparent;
-        color: #d4af37;
-        font-weight: 500;
-        padding: 0px;
-        border: none;
-        font-size: 12px;
-        font-family: 'Outfit', sans-serif;
-        letter-spacing: 0.5px;
-    }
-    
-    .gender-pill {
-        background: transparent;
-        color: #717188;
-        padding: 0;
-        border: none;
-        font-size: 11px;
-        text-transform: uppercase;
-        font-family: 'Outfit', sans-serif;
-        letter-spacing: 1px;
-    }
-
-    /* Links */
-    .fragrantica-link {
-        color: #cbd5e1;
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    .fragrantica-link:hover {
-        color: #d4af37;
-        text-decoration: underline;
-    }
-
-    /* Molecules container */
-    .mol-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: #08080a;
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid #14141a;
-        box-shadow: none;
-    }
-    
-    /* Clean Typography Olfactory Pyramid */
-    .pyramid-container {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-top: 15px;
-    }
-    .pyramid-tier {
-        border-bottom: 1px solid #111116;
-        padding-bottom: 10px;
-    }
-    .pyramid-tier:last-child {
-        border-bottom: none;
-    }
-    .tier-header {
-        font-family: 'Outfit', sans-serif;
-        font-size: 10px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        margin-bottom: 4px;
-    }
-    .tier-top { color: #fda4af; }
-    .tier-mid { color: #a7f3d0; }
-    .tier-base { color: #fde68a; }
-    
-    /* Clean text notes */
-    .notes-list {
-        font-size: 13.5px;
-        color: #cbd5e1;
-        line-height: 1.5;
-        font-weight: 300;
-    }
-    
-    /* Accords list */
-    .accord-text {
-        font-family: 'Outfit', sans-serif;
-        font-size: 9px;
-        font-weight: 400;
-        text-transform: uppercase;
-        color: #d4af37;
-        letter-spacing: 1px;
-        margin-right: 12px;
-        display: inline-block;
-    }
+  .block-container {{ padding-top: 2.2rem; max-width: 1180px; }}
+  h1 {{ font-weight: 500 !important; letter-spacing: -0.01em; }}
+  .lede {{ color: {MUTED}; font-size: 1.02rem; max-width: 46rem; margin: -0.4rem 0 1.4rem; line-height: 1.55; }}
+  .pf {{ border-top: 1px solid {RULE}; padding: 14px 0 18px; }}
+  .pf-head {{ display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }}
+  .pf-name {{ font-family: 'Newsreader', serif; font-size: 1.32rem; line-height: 1.2; }}
+  .pf-name a {{ color: {INK}; text-decoration: none; }}
+  .pf-name a:hover {{ color: {ACCENT}; text-decoration: underline; }}
+  .pf-score {{ font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; color: {MUTED}; white-space: nowrap; }}
+  .pf-score b {{ color: {INK}; font-weight: 500; }}
+  .pf-match {{ font-family: 'IBM Plex Mono', monospace; font-size: 0.95rem; color: {ACCENT}; white-space: nowrap; }}
+  .pf-meta {{ color: {MUTED}; font-size: 0.86rem; margin: 2px 0 10px; }}
+  .pf-notes {{ display: grid; grid-template-columns: 3.6rem 1fr; gap: 3px 10px; font-size: 0.9rem; margin: 0; }}
+  .pf-notes dt {{ color: {MUTED}; font-size: 0.78rem; padding-top: 2px; }}
+  .pf-notes dd {{ margin: 0; color: {INK}; }}
+  .pf-notes mark {{ background: none; color: {ACCENT}; font-weight: 600; }}
+  .pf-accords {{ margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }}
+  .pf-accords span {{ font-size: 0.75rem; color: {MUTED}; border: 1px solid {RULE}; border-radius: 3px; padding: 1px 7px; }}
+  .count {{ color: {MUTED}; font-size: 0.88rem; margin: 6px 0 4px; }}
+  .mol {{ display: flex; justify-content: center; border: 1px solid {RULE}; border-radius: 4px; background: #fff; padding: 8px; }}
+  .verdict {{ font-family: 'Newsreader', serif; font-size: 2.6rem; line-height: 1; margin: 2px 0 6px; color: {ACCENT}; }}
+  .small {{ color: {MUTED}; font-size: 0.85rem; }}
 </style>
-""", unsafe_allow_html=True)
+""")
 
-# ----------------- CACHED RESOURCES & DATA LOADING -----------------
 
-@st.cache_resource
-def get_dupe_finder():
-    try:
-        return DupeFinder(data_path="data/fragrantica_cleaned.csv")
-    except Exception as e:
-        st.error(f"Error loading DupeFinder: {e}")
-        return None
+# ----------------------------------------------------------------- data
 
-@st.cache_resource
-def load_perfume_data():
-    df = pd.read_csv("data/fragrantica_cleaned.csv", sep=';')
-    # Clean Rating Value: European comma decimal → float
-    if 'Rating Value' in df.columns:
-        df['Rating Value'] = pd.to_numeric(
-            df['Rating Value'].astype(str).str.replace(',', '.'),
-            errors='coerce'
-        ).fillna(0.0)
-    # Clean Rating Count and Year to numeric
-    for col in ['Rating Count', 'Year']:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+@st.cache_data(show_spinner=False)
+def load_perfumes():
+    df = pd.read_csv(PERFUMES_CSV, sep=";")
+    df["Rating Value"] = pd.to_numeric(df["Rating Value"].astype(str).str.replace(",", "."), errors="coerce").fillna(0.0)
+    df["Rating Count"] = pd.to_numeric(df["Rating Count"].astype(str).str.replace(",", ""), errors="coerce").fillna(0).astype(int)
+    df["Year"] = pd.to_numeric(df["Year"], errors="coerce")
     return df
 
-@st.cache_resource
-def load_search_engine(df):
+
+@st.cache_resource(show_spinner="Indexing notes and accords…")
+def get_dupe_finder():
+    return DupeFinder(PERFUMES_CSV)
+
+
+@st.cache_resource(show_spinner="Indexing notes and accords…")
+def get_search_index():
     from sklearn.feature_extraction.text import TfidfVectorizer
-    # Clean lists of notes
-    def process_notes(text):
-        if pd.isna(text): return ''
-        return ' '.join([x.strip().lower() for x in str(text).split(',')])
-    
-    top_clean = df['Top'].apply(process_notes)
-    mid_clean = df['Middle'].apply(process_notes)
-    base_clean = df['Base'].apply(process_notes)
-    
-    accord_cols = ['mainaccord1','mainaccord2','mainaccord3','mainaccord4','mainaccord5']
-    accords = df[accord_cols].apply(lambda x: ' '.join([str(i).lower() for i in x if pd.notna(i)]), axis=1)
-    
-    # Concatenate corpus texts (notes repeated to balance importances)
-    corpus = (
-        "top: " + top_clean + " " +
-        "middle: " + mid_clean + " " +
-        "base: " + base_clean + " " +
-        "accords: " + accords
+
+    df = load_perfumes()
+
+    def notes(col):
+        return df[col].fillna("").str.lower()
+
+    accords = df[[f"mainaccord{i}" for i in range(1, 6)]].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
+    corpus = notes("Top") + " " + notes("Middle") + " " + notes("Base") + " " + accords + " " + accords
+    vectorizer = TfidfVectorizer(token_pattern=r"(?u)\b[a-z][a-z]+\b", ngram_range=(1, 2), sublinear_tf=True, min_df=2)
+    return vectorizer, vectorizer.fit_transform(corpus)
+
+
+@st.cache_data(show_spinner=False)
+def dupes_for(idx):
+    # Score generously, then filter in the page; one pass is ~2s.
+    return get_dupe_finder().find_dupes(base_idx=idx, top_n=300)
+
+
+def load_metrics():
+    if os.path.exists(METRICS_JSON):
+        with open(METRICS_JSON) as f:
+            return json.load(f)
+    return None
+
+
+# ----------------------------------------------------------------- rendering helpers
+
+def nice(slug):
+    return str(slug).replace("-", " ").title()
+
+
+def split_notes(value):
+    if isinstance(value, list):
+        return value
+    if pd.isna(value):
+        return []
+    return [n.strip() for n in str(value).split(",") if n.strip()]
+
+
+def notes_html(notes, shared=None, limit=6):
+    if not notes:
+        return f"<span style='color:{MUTED}'>not listed</span>"
+    out = []
+    for n in notes[:limit]:
+        text = html.escape(n)
+        out.append(f"<mark>{text}</mark>" if shared and n.lower() in shared else text)
+    more = f" <span style='color:{MUTED}'>+{len(notes) - limit}</span>" if len(notes) > limit else ""
+    return ", ".join(out) + more
+
+
+def perfume_card(row, right_html, shared=None):
+    year = f" · {int(row['Year'])}" if pd.notna(row.get("Year")) else ""
+    accords = [a for a in (row.get(f"mainaccord{i}") for i in range(1, 6)) if isinstance(a, str)]
+    accord_html = "".join(f"<span>{html.escape(a)}</span>" for a in accords)
+    return f"""
+    <div class="pf">
+      <div class="pf-head">
+        <div class="pf-name"><a href="{html.escape(str(row['url']))}" target="_blank">{html.escape(nice(row['Perfume']))}</a></div>
+        {right_html}
+      </div>
+      <div class="pf-meta">{html.escape(nice(row['Brand']))}{year} · {html.escape(str(row['Gender']).title())}</div>
+      <dl class="pf-notes">
+        <dt>Top</dt><dd>{notes_html(split_notes(row['Top']), shared)}</dd>
+        <dt>Heart</dt><dd>{notes_html(split_notes(row['Middle']), shared)}</dd>
+        <dt>Base</dt><dd>{notes_html(split_notes(row['Base']), shared)}</dd>
+      </dl>
+      <div class="pf-accords">{accord_html}</div>
+    </div>"""
+
+
+def rating_html(row):
+    return (f"<div class='pf-score'><b>{row['Rating Value']:.2f}</b> / 5 · "
+            f"{int(row['Rating Count']):,} ratings</div>")
+
+
+def render_grid(rows, right_fn, shared=None):
+    cols = st.columns(2, gap="large")
+    for i, (_, row) in enumerate(rows.iterrows()):
+        cols[i % 2].html(perfume_card(row, right_fn(row), shared))
+
+
+def bar_chart(df, x, y, x_title, height, fmt=".2f", domain=None):
+    scale = alt.Scale(domain=domain) if domain else alt.Undefined
+    return (
+        alt.Chart(df)
+        .mark_bar(color=ACCENT, height={"band": 0.7})
+        .encode(
+            x=alt.X(f"{x}:Q", title=x_title, scale=scale),
+            y=alt.Y(f"{y}:N", sort="-x", title=None, axis=alt.Axis(labelOverlap=False)),
+            tooltip=[alt.Tooltip(y), alt.Tooltip(x, format=fmt)],
+        )
+        .properties(height=height)
+        .configure(background="transparent")
+        .configure_axis(labelColor=MUTED, titleColor=MUTED, gridColor=RULE, domainColor=RULE,
+                        tickColor=RULE, labelFont="IBM Plex Sans", titleFont="IBM Plex Sans",
+                        labelFontSize=12, titleFontWeight="normal", labelLimit=220)
+        .configure_view(strokeWidth=0)
     )
-    
-    vectorizer = TfidfVectorizer(token_pattern=r'(?u)\b\w+\b') # Keep single-character notes if any
-    tfidf_matrix = vectorizer.fit_transform(corpus)
-    return vectorizer, tfidf_matrix
 
-# Load assets
-df_perfumes = load_perfume_data()
-dupe_finder = get_dupe_finder()
 
-# Helper for physical tiered notes display
-def get_pyramid_html(top_notes, mid_notes, base_notes, accords):
-    top_str = ", ".join(top_notes) if top_notes else "N/A"
-    mid_str = ", ".join(mid_notes) if mid_notes else "N/A"
-    base_str = ", ".join(base_notes) if base_notes else "N/A"
-    
-    accords_html = "".join([f"<span class='accord-text'>• {a.upper()}</span>" for a in accords])
-    
-    return clean_html(f"""
-    <div class="pyramid-container">
-        <div class="pyramid-tier">
-            <div class="tier-header tier-top">Top Notes</div>
-            <div class="notes-list">{top_str}</div>
-        </div>
-        <div class="pyramid-tier">
-            <div class="tier-header tier-mid">Heart Notes</div>
-            <div class="notes-list">{mid_str}</div>
-        </div>
-        <div class="pyramid-tier">
-            <div class="tier-header tier-base">Base Notes</div>
-            <div class="notes-list">{base_str}</div>
-        </div>
-        <div style="margin-top: 5px; padding-top: 8px;">
-            {accords_html}
-        </div>
-    </div>
-    """)
+def page_header(title, lede):
+    st.title(title)
+    st.html(f"<p class='lede'>{lede}</p>")
 
-# ----------------- SIDEBAR BRANDING & NAVIGATION -----------------
 
-with st.sidebar:
-    st.markdown(clean_html("""
-    <div class="brand-container">
-        <span class="brand-title">SCENTIENT</span>
-    </div>
-    """), unsafe_allow_html=True)
-    
-    st.markdown("<p style='font-family: \"Outfit\", sans-serif; font-size: 10px; color: #d4af37; margin-top: -24px; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; font-weight: 400; text-align: center;'>Molecular Olfaction</p>", unsafe_allow_html=True)
-    
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; color: #717188; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; padding-left: 15px;'>Navigation</h4>", unsafe_allow_html=True)
-    
-    menu = st.radio(
-        "Go to page:",
-        [
-            "Home & Discovery Explorer", 
-            "Semantic Scent Search", 
-            "Dupe & Alternative Discovery",
-            "Molecular Odor Predictor",
-            "ML Dashboard & Features"
-        ],
-        label_visibility="collapsed"
+# ----------------------------------------------------------------- pages
+
+def page_browse():
+    df = load_perfumes()
+    page_header(
+        "Browse the catalogue",
+        f"{len(df):,} perfumes from {df['Brand'].nunique():,} houses, scraped from Fragrantica. "
+        "Filter by note, house or rating. Each name links to its Fragrantica page.",
     )
-    
-    st.markdown("---")
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; color: #d4af37; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; padding-left: 15px;'>Olfactive Repository</h4>", unsafe_allow_html=True)
-    st.markdown(f"<div style='font-size: 13px; color: #a1a1b5; padding-left: 15px; line-height: 1.6;'><b>Fragrances:</b> {len(df_perfumes):,}<br><b>Brands:</b> {df_perfumes['Brand'].nunique():,}<br><b>Demographics:</b> Unisex, Pour Homme, Pour Femme</div>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.markdown("<div style='font-size: 10px; color: #4b4b5c; text-align: center; font-weight: 300;'>Scentient Platform • Developed by Muhammad Ali<br>Powered by RDKit, Mordred & Random Forests</div>", unsafe_allow_html=True)
 
-# ----------------- RDKIT MOLECULE RENDERING -----------------
+    c1, c2, c3, c4 = st.columns([1.2, 1.2, 1, 1])
+    note = c1.text_input("Contains note", placeholder="oud, iris, fig…")
+    brand = c2.text_input("House", placeholder="Guerlain, Lattafa…")
+    gender = c3.selectbox("For", ["Anyone", "Women", "Men", "Unisex"])
+    sort = c4.selectbox("Sort by", ["Most rated", "Highest rated", "Newest"])
 
-def render_molecule_svg(smiles):  # noqa: E302
+    c5, c6, _ = st.columns([1.2, 1.2, 2])
+    min_rating = c5.slider("Minimum rating", 0.0, 5.0, 3.5, 0.1)
+    min_votes = c6.select_slider("Minimum number of ratings", [0, 10, 50, 100, 500, 1000, 5000], value=50)
+
+    view = df[(df["Rating Value"] >= min_rating) & (df["Rating Count"] >= min_votes)]
+    if gender != "Anyone":
+        view = view[view["Gender"].str.lower() == gender.lower()]
+    if brand:
+        view = view[view["Brand"].str.replace("-", " ").str.contains(brand.strip(), case=False, na=False)]
+    if note:
+        needle = note.strip()
+        view = view[view[["Top", "Middle", "Base"]].apply(
+            lambda c: c.str.contains(needle, case=False, na=False, regex=False)).any(axis=1)]
+
+    sort_cols = {"Most rated": ["Rating Count"], "Highest rated": ["Rating Value", "Rating Count"], "Newest": ["Year", "Rating Count"]}
+    view = view.sort_values(sort_cols[sort], ascending=False)
+
+    per_page = 20
+    pages = max(1, int(np.ceil(len(view) / per_page)))
+    if len(view) == 0:
+        st.info("Nothing matches those filters. Try a lower rating or vote threshold.")
+        return
+    top_l, top_r = st.columns([3, 1])
+    page = top_r.number_input(f"Page (of {pages:,})", 1, pages, 1)
+    top_l.html(f"<p class='count'>{len(view):,} perfumes · showing {(page - 1) * per_page + 1}–{min(page * per_page, len(view))}</p>")
+    render_grid(view.iloc[(page - 1) * per_page: page * per_page], rating_html)
+
+
+SEARCH_EXAMPLES = {
+    "Smoky leather": "leather smoke birch tobacco",
+    "Summer citrus": "bergamot lemon grapefruit neroli fresh",
+    "Gourmand": "vanilla tonka caramel coffee",
+    "Green and earthy": "vetiver galbanum fig leaf green",
+    "Powdery iris": "iris orris violet powdery",
+}
+
+
+def page_search():
+    df = load_perfumes()
+    page_header(
+        "Search by description",
+        "Type the notes or accords you want. Results are ranked by TF-IDF similarity over each "
+        "perfume's listed notes and main accords, so concrete words like “fig” or “incense” work "
+        "better than moods like “cosy”.",
+    )
+
+    if "search_q" not in st.session_state:
+        st.session_state.search_q = SEARCH_EXAMPLES["Gourmand"]
+
+    def use_example():
+        pick = st.session_state.search_pick
+        if pick:
+            st.session_state.search_q = SEARCH_EXAMPLES[pick]
+
+    st.pills("Examples", list(SEARCH_EXAMPLES), key="search_pick", on_change=use_example)
+    c1, c2, c3 = st.columns([3, 1, 1])
+    query = c1.text_input("Notes and accords", key="search_q")
+    gender = c2.selectbox("For", ["Anyone", "Women", "Men", "Unisex"])
+    min_votes = c3.select_slider("Min. ratings", [0, 10, 50, 100, 500, 1000], value=50)
+
+    if not query.strip():
+        return
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    vectorizer, matrix = get_search_index()
+    sims = cosine_similarity(vectorizer.transform([query.lower()]), matrix).ravel()
+    view = df.assign(score=sims)
+    view = view[(view["score"] > 0) & (view["Rating Count"] >= min_votes)]
+    if gender != "Anyone":
+        view = view[view["Gender"].str.lower() == gender.lower()]
+    view = view.sort_values(["score", "Rating Count"], ascending=False).head(20)
+
+    if view.empty:
+        st.info("None of those words appear in the note lists. Try specific notes such as rose, amber or cedar.")
+        return
+    words = {w for w in query.lower().replace(",", " ").split()}
+    shared = {n.lower() for _, r in view.iterrows() for n in split_notes(r["Top"]) + split_notes(r["Middle"]) + split_notes(r["Base"])
+              if any(w in n.lower().split() for w in words)}
+    st.html(f"<p class='count'>Top {len(view)} matches. Notes that match your words are highlighted.</p>")
+    render_grid(view, lambda r: f"<div class='pf-match'>{r['score']:.2f}</div>", shared)
+
+
+DUPE_EXAMPLES = {
+    "Creed Aventus": "creed aventus",
+    "Baccarat Rouge 540": "maison francis kurkdjian baccarat rouge 540",
+    "PdM Althaïr": "parfums de marly althair",
+    "Tom Ford Lost Cherry": "tom ford lost cherry",
+    "YSL Black Opium": "yves saint laurent black opium",
+}
+
+
+def page_alternatives():
+    finder = get_dupe_finder()
+    page_header(
+        "Find alternatives",
+        "Pick a perfume and get others with a similar note structure. Rare notes count for more than "
+        "common ones, a note in the same layer scores higher than one in a different layer, "
+        "and the same house's flankers are pushed down.",
+    )
+
+    if "dupe_q" not in st.session_state:
+        st.session_state.dupe_q = DUPE_EXAMPLES["Baccarat Rouge 540"]
+
+    def use_example():
+        pick = st.session_state.dupe_pick
+        if pick:
+            st.session_state.dupe_q = DUPE_EXAMPLES[pick]
+
+    st.pills("Examples", list(DUPE_EXAMPLES), key="dupe_pick", on_change=use_example)
+    c1, c2 = st.columns([1, 1])
+    query = c1.text_input("Perfume name", key="dupe_q")
+    candidates = finder.search(query, limit=8) if query.strip() else []
+    if not candidates:
+        st.info("Type a perfume name, optionally with the house.")
+        return
+    idx = c2.selectbox("Closest catalogue entries", [i for i, _ in candidates], format_func=finder.describe)
+
+    f1, f2, f3 = st.columns([1, 1, 1])
+    clones_only = f1.toggle("Clone houses only", help="Lattafa, Armaf, Afnan, Zara and similar: " + ", ".join(DUPE_BRANDS))
+    hide_same = f2.toggle("Hide the same house", value=True)
+    min_votes = f3.select_slider("Min. ratings", [0, 10, 50, 100, 500], value=10)
+
+    base = finder.df.iloc[idx]
+    perfumes = load_perfumes()
+    base_full = perfumes.iloc[idx]
+    # Highlight using the raw note names shown on the cards, not the matcher's normalized ones.
+    base_notes = {n.lower() for c in ("Top", "Middle", "Base") for n in split_notes(base_full[c])}
+    st.html(f"<p class='count'>Your pick</p>{perfume_card(base_full, rating_html(base_full))}")
+
+    with st.spinner("Comparing against the whole catalogue…"):
+        results = dupes_for(idx)
+    if results is None or results.empty:
+        st.warning("No comparable perfumes found.")
+        return
+    results = results.merge(perfumes[["Rating Count"]], left_on="index", right_index=True)
+    results = results[results["Rating Count"] >= min_votes]
+    if clones_only:
+        results = results[results["Brand"].str.replace("-", " ").str.lower().isin(DUPE_BRANDS)]
+    if hide_same:
+        results = results[results["Brand"] != base["Brand"]]
+    results = results.head(12)
+    if results.empty:
+        st.info("No matches pass those filters. Loosen them to see more.")
+        return
+
+    rows = perfumes.loc[results["index"]].assign(match=results["Similarity (%)"].values)
+    st.html(f"<p class='count'>{len(rows)} closest by note structure. Notes shared with {html.escape(nice(base['Perfume']))} are highlighted.</p>")
+    render_grid(rows, lambda r: f"<div class='pf-match'>{r['match']:.0f}% match</div>", base_notes)
+
+
+MOLECULES = {
+    "Vanillin": "COc1cc(C=O)ccc1O",
+    "Limonene": "CC1=CCC(CC1)C(=C)C",
+    "Menthol": "CC(C)C1CCC(C)CC1O",
+    "Ambroxan": "CC1(C)CCCC2(C)C1CCC1(C)OCCC12",
+    "Ethyl cinnamate": "CCOC(=O)/C=C/c1ccccc1",
+    "Geranyl formate": "CC(C)=CCC/C(C)=C/COC=O",
+    "Damascenone": "CC=CC(=O)C1=C(C)C=CCC1(C)C",
+}
+
+
+def molecule_svg(mol):
+    rdDepictor.Compute2DCoords(mol)
+    drawer = rdMolDraw2D.MolDraw2DSVG(420, 300)
+    opts = drawer.drawOptions()
+    opts.clearBackground = False
+    opts.bondLineWidth = 2
+    opts.padding = 0.12
+    drawer.DrawMolecule(mol)
+    drawer.FinishDrawing()
+    svg = drawer.GetDrawingText()
+    # st.html sanitizes inline <svg>, so embed it as an image instead.
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+
+
+def page_predictor():
+    page_header(
+        "Predict an odor from structure",
+        "Enter a SMILES string. The model computes Mordred descriptors, keeps the 250 most informative, "
+        "and a random forest assigns one of eleven odor families. It was trained on fewer than a hundred "
+        "molecules, so treat the output as a rough guess.",
+    )
     if not RDKIT_AVAILABLE:
-        return None
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if not mol:
-            return None
-        Chem.rdDepictor.Compute2DCoords(mol)
-        drawer = rdMolDraw2D.MolDraw2DSvg(400, 320)
-        
-        # Style Options for Premium Look (Dark background, clear contrast)
-        opts = drawer.drawOptions()
-        opts.backgroundColour = (0.04, 0.04, 0.06, 1.0) # Match dark card style
-        opts.legendFontSize = 13
-        opts.annotationFontSize = 13
-        opts.multipleBondOffset = 0.15
-        opts.bondThickness = 2.0
-        
-        # Color atoms clearly
-        opts.useBWDirectly = False
-        
-        drawer.DrawMolecule(mol)
-        drawer.FinishDrawing()
-        svg = drawer.GetDrawingText()
-        return svg
-    except Exception as e:
-        return f"Error drawing molecule: {e}"
+        st.warning("RDKit is not installed in this environment, so structures can't be parsed. "
+                   "Install the packages in requirements.txt to enable this page.")
+        return
 
-# ----------------- PAGES IMPLEMENTATION -----------------
+    if "smiles" not in st.session_state:
+        st.session_state.smiles = MOLECULES["Vanillin"]
 
-# Page 1: Home & Discovery Explorer
-if menu == "Home & Discovery Explorer":
-    # Stunning editorial split hero layout
-    hero_col1, hero_col2 = st.columns([5, 4])
-    
-    with hero_col1:
-        st.markdown("""
-        <h1 style="font-family: 'Cormorant Garamond', serif; font-size: 55px; font-weight: 300; line-height: 1.0; margin-top: 20px; margin-bottom: 10px; color: #f3d060; letter-spacing: 2px; text-transform: uppercase;">
-            SCENTIENT
-        </h1>
-        <h3 class="sub-title" style="font-size: 11px; font-weight: 400; color: #717188; margin-top:0px; margin-bottom: 30px; letter-spacing: 4px; text-transform: uppercase;">
-            Molecular Olfaction Platform
-        </h3>
-        <p style="font-size: 15px; line-height: 1.8; color: #a1a1b5; margin-bottom: 20px; font-weight: 300;">
-            Welcome to the intersection of molecular organic chemistry and sensory aesthetics. Scentient decodes the olfactive universe by bridging mathematical compound geometry and the natural vocabulary of scent.
-        </p>
-        <p style="font-size: 14px; line-height: 1.8; color: #717188; margin-bottom: 30px; font-weight: 300;">
-            Utilizing topological graph descriptors via <b>RDKit</b>, high-dimensional machine learning estimators, and semantic vector indexing, Scentient parses chemical molecules, executes note-weighted searches, and retrieves direct budget-friendly olfactive equivalents.
-        </p>
-        """, unsafe_allow_html=True)
-        
-    with hero_col2:
-        img_file = "generic_scent.png" if os.path.exists("generic_scent.png") else "minimalist_perfume.png"
-        if os.path.exists(img_file):
-            st.image(img_file, width='stretch')
-            
-    st.markdown("<hr style='border-color: #111115; margin: 35px 0px;'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='font-size: 28px; font-weight: 300; color: #f3d060; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;'>Olfactive Discovery Library</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #717188; margin-bottom: 30px; font-weight:300; font-size:14.5px;'>Explore, filter, and dissect the notes of over 24,000 elite luxury, designer, and boutique perfumes.</p>", unsafe_allow_html=True)
-    
-    # Scent Discovery Filters
-    filter_card = st.container()
-    with filter_card:
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            gender_filter = st.selectbox("Olfactive Demography", ["All", "Unisex", "Men", "Women"])
-        with col2:
-            rating_filter = st.slider("Minimum Quality Score", 0.0, 5.0, 3.8, 0.1)
-        with col3:
-            search_brand = st.text_input("Brand / House Search", placeholder="e.g. Tom Ford, Creed...")
-        with col4:
-            search_note = st.text_input("Olfactory Note Key", placeholder="e.g. Vanilla, Oud, Bergamot...")
-            
-    # Query logic
-    filtered_df = df_perfumes.copy()
-    if gender_filter != "All":
-        filtered_df = filtered_df[filtered_df['Gender'].str.lower() == gender_filter.lower()]
-    filtered_df = filtered_df[filtered_df['Rating Value'] >= rating_filter]
-    if search_brand:
-        filtered_df = filtered_df[filtered_df['Brand'].str.contains(search_brand, case=False, na=False)]
-    if search_note:
-        note_match = (
-            filtered_df['Top'].str.contains(search_note, case=False, na=False) |
-            filtered_df['Middle'].str.contains(search_note, case=False, na=False) |
-            filtered_df['Base'].str.contains(search_note, case=False, na=False)
+    def use_example():
+        pick = st.session_state.mol_pick
+        if pick:
+            st.session_state.smiles = MOLECULES[pick]
+
+    st.pills("Examples", list(MOLECULES), key="mol_pick", on_change=use_example,
+             help="The first four are in the training set. The last three are not.")
+    smiles = st.text_input("SMILES", key="smiles").strip()
+    if not smiles:
+        return
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        st.error("RDKit couldn't parse that SMILES string. Check brackets, ring closures and charges.")
+        return
+
+    left, right = st.columns([1, 1], gap="large")
+    with left:
+        st.html(f"<div class='mol'><img src='{molecule_svg(Chem.Mol(mol))}' width='420' height='300' alt='2D structure'></div>")
+        props = pd.DataFrame(
+            [
+                ("Formula", rdMolDescriptors.CalcMolFormula(mol)),
+                ("Molecular weight", f"{Descriptors.MolWt(mol):.1f} g/mol"),
+                ("logP (Crippen)", f"{Crippen.MolLogP(mol):.2f}"),
+                ("Heavy atoms", str(mol.GetNumHeavyAtoms())),
+                ("Rotatable bonds", str(rdMolDescriptors.CalcNumRotatableBonds(mol))),
+                ("H-bond donors / acceptors", f"{rdMolDescriptors.CalcNumHBD(mol)} / {rdMolDescriptors.CalcNumHBA(mol)}"),
+            ],
+            columns=["Property", "Value"],
         )
-        filtered_df = filtered_df[note_match]
-        
-    st.markdown(f"<p style='font-family: \"Outfit\", sans-serif; font-size: 12px; color: #d4af37; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;'>Catalogued matches: <b>{len(filtered_df):,}</b> perfumes found</p>", unsafe_allow_html=True)
-    
-    # Paginate results for clean loading
-    limit = 12
-    pages = max(1, int(np.ceil(len(filtered_df) / limit)))
-    
-    col_p1, col_p2 = st.columns([1, 6])
-    with col_p1:
-        page_num = st.number_input("Page", min_value=1, max_value=pages, step=1, value=1)
-    
-    start_idx = (page_num - 1) * limit
-    end_idx = start_idx + limit
-    display_df = filtered_df.iloc[start_idx:end_idx]
-    
-    # Display Grid
-    if not display_df.empty:
-        col_grid1, col_grid2 = st.columns(2)
-        for idx, (_, row) in enumerate(display_df.iterrows()):
-            target_col = col_grid1 if idx % 2 == 0 else col_grid2
-            
-            top_notes = [x.strip() for x in str(row['Top']).split(',') if pd.notna(row['Top'])][:4]
-            mid_notes = [x.strip() for x in str(row['Middle']).split(',') if pd.notna(row['Middle'])][:4]
-            base_notes = [x.strip() for x in str(row['Base']).split(',') if pd.notna(row['Base'])][:4]
-            
-            accord_list = [row[f'mainaccord{i}'] for i in range(1, 6) if pd.notna(row[f'mainaccord{i}'])]
-            
-            pyramid_html = get_pyramid_html(top_notes, mid_notes, base_notes, accord_list)
-            
-            card_content = clean_html(f"""
-            <div class="glass-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                    <div>
-                        <h4 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 500;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
-                        <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 11px; color: #d4af37; font-weight: 400; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).title()}</p>
-                    </div>
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                        <span class="gender-pill">{row['Gender']}</span>
-                        <span class="rating-pill">{row['Rating Value']:.2f} Rating</span>
-                    </div>
-                </div>
-                {pyramid_html}
-            </div>
-            """)
-            target_col.markdown(card_content, unsafe_allow_html=True)
+        st.dataframe(props, hide_index=True, width="stretch")
+        if Descriptors.MolWt(mol) > 300:
+            st.caption("Most odorants weigh under 300 g/mol. Heavier molecules are usually not volatile enough to smell.")
+
+    with right:
+        if not PREDICT_AVAILABLE:
+            st.warning("Mordred is not installed, so the classifier can't run. Install the packages in requirements.txt.")
+            return
+        try:
+            with st.spinner("Computing descriptors…"):
+                proba = predict_smiles_proba(smiles)
+        except Exception as e:
+            st.error(f"Prediction failed: {e}")
+            return
+        st.html(f"<div class='small'>Most likely family</div><div class='verdict'>{html.escape(proba.index[0])}</div>"
+                f"<div class='small'>{proba.iloc[0]:.0%} of trees agree. Runner-up: {html.escape(proba.index[1])} ({proba.iloc[1]:.0%}).</div>")
+        top = proba.head(6).rename_axis("family").reset_index(name="probability")
+        st.altair_chart(bar_chart(top, "probability", "family", "Share of trees", 220, ".0%", [0, 1]), width="stretch")
+        training = pd.read_csv(SMILES_CSV)
+        canon = Chem.MolToSmiles(mol)
+        hit = [n for n, s in zip(training["name"], training["smiles"])
+               if (m := Chem.MolFromSmiles(s)) is not None and Chem.MolToSmiles(m) == canon]
+        if hit:
+            label = pd.read_csv(LABELS_CSV).set_index("name").loc[hit[0], "odor"]
+            st.caption(f"This is {hit[0]}, which is in the training set labelled “{label}”. Try an unseen molecule for a fair test.")
+
+
+def page_model():
+    page_header(
+        "How the odor model works",
+        "Training data, accuracy and the descriptors the classifier relies on. Accuracy comes from "
+        "stratified cross-validation, with descriptor selection refit inside each fold.",
+    )
+    metrics = load_metrics()
+    if metrics:
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Cross-validated accuracy", f"{metrics['cv_accuracy']:.0%}")
+        m2.metric("Random-guess baseline", f"{metrics['chance_accuracy']:.0%}")
+        m3.metric("Training molecules", metrics["n_molecules"])
+        m4.metric("Odor families", metrics["n_classes"])
+        st.caption(f"{metrics['classifier']}, {metrics['n_estimators']} trees, {metrics['n_features']} descriptors, "
+                   f"{metrics['cv_folds']}-fold CV. Last trained {metrics['trained_at']}.")
     else:
-        st.info("No fragrances match your filter parameters. Try expanding your search criteria!")
+        st.info("No metrics yet. Retrain the model below.")
 
-# Page 2: Semantic Scent Search
-elif menu == "Semantic Scent Search":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>Semantic Scent Search</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Describe your desired olfactive atmosphere in natural language to retrieve matches.</p>", unsafe_allow_html=True)
-    
-    vectorizer, tfidf_matrix = load_search_engine(df_perfumes)
-    
-    st.markdown(
-        """
-        <div class="glass-card">
-            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Olfactive PYRAMID Vectorization</h5>
-            <p style="margin: 0px; font-size: 13.5px; line-height: 1.7; color: #a1a1b5; font-weight: 300;">
-                We represent each perfume as a structured document capturing its exact olfactive layers and principal accords. Using a customized TF-IDF Vectorizer, we convert your descriptions into high-dimensional keyword representations and execute a Cosine Similarity search against our entire 24,000+ library.
-            </p>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
-    
-    col_s1, col_s2 = st.columns([3, 1])
-    with col_s1:
-        query = st.text_input("Describe the atmosphere or specific notes you seek:", "sweet chocolate coffee winter perfume with vanilla base")
-    with col_s2:
-        s_gender = st.selectbox("Olfactive Demography", ["All", "Unisex", "Men", "Women"])
-        
-    num_results = st.slider("Result Count Limit", 4, 30, 8, 2)
-    
-    if query:
-        from sklearn.metrics.pairwise import cosine_similarity
-        
-        st.markdown(f"<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-top: 25px; text-transform: uppercase; letter-spacing: 1px;'>Olfactive Matches for: <i>\"{query}\"</i></h3>", unsafe_allow_html=True)
-        
-        # Transform query
-        query_vec = vectorizer.transform([query.lower()])
-        sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
-        
-        search_df = df_perfumes.copy()
-        search_df['Similarity'] = sims * 100
-        
-        if s_gender != "All":
-            search_df = search_df[search_df['Gender'].str.lower() == s_gender.lower()]
-            
-        search_df = search_df.sort_values(by='Similarity', ascending=False).head(num_results)
-        
-        if not search_df.empty and search_df['Similarity'].max() > 0:
-            col_res1, col_res2 = st.columns(2)
-            
-            for i, (_, row) in enumerate(search_df.iterrows()):
-                target_col = col_res1 if i % 2 == 0 else col_res2
-                
-                top_notes = [x.strip() for x in str(row['Top']).split(',') if pd.notna(row['Top'])][:4]
-                mid_notes = [x.strip() for x in str(row['Middle']).split(',') if pd.notna(row['Middle'])][:4]
-                base_notes = [x.strip() for x in str(row['Base']).split(',') if pd.notna(row['Base'])][:4]
-                
-                accord_list = [row[f'mainaccord{k}'] for k in range(1, 6) if pd.notna(row[f'mainaccord{k}'])]
-                
-                pyramid_html = get_pyramid_html(top_notes, mid_notes, base_notes, accord_list)
-                
-                card_content = clean_html(f"""
-                <div class="glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                        <div>
-                            <h4 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 500;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
-                            <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 11px; color: #d4af37; font-weight: 400; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).title()}</p>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: end; gap: 4px;">
-                            <span class="rating-pill">{row['Similarity']:.1f}% Similarity</span>
-                            <span class="gender-pill">{row['Rating Value']:.2f} Rating ({row['Gender']})</span>
-                        </div>
-                    </div>
-                    {pyramid_html}
-                </div>
-                """)
-                target_col.markdown(card_content, unsafe_allow_html=True)
-        else:
-            st.warning("No matches found. Try entering alternative scent descriptors!")
+    left, right = st.columns([1, 1], gap="large")
+    with left:
+        st.subheader("Accuracy by family", anchor=False)
+        if metrics:
+            per = pd.DataFrame([{"family": k, "F1": v["f1"], "molecules": v["support"]} for k, v in metrics["per_class"].items()])
+            st.altair_chart(bar_chart(per, "F1", "family", "F1 score (out-of-fold)", 330, ".2f", [0, 1]), width="stretch")
+    with right:
+        st.subheader("Most informative descriptors", anchor=False)
+        if os.path.exists(IMPORTANCE_CSV):
+            imp = pd.read_csv(IMPORTANCE_CSV).head(15)
+            st.altair_chart(bar_chart(imp, "mi_score", "feature", "Mutual information with odor label", 330), width="stretch")
+            st.caption("Names are Mordred descriptor codes; see the Mordred documentation for definitions.")
 
-# Page 3: Dupe & Alternative Discovery
-elif menu == "Dupe & Alternative Discovery":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>Dupe & Alternative Discovery</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Discover highly accurate, cost-effective equivalents of prestigious luxury fragrances.</p>", unsafe_allow_html=True)
-    
-    st.markdown(
-        """
-        <div class="glass-card">
-            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Olfactory Mapping Architecture</h5>
-            <p style="margin: 0px; font-size: 13.5px; line-height: 1.7; color: #a1a1b5; font-weight: 300;">
-                Our algorithm rates component rarity mathematically (rare notes weigh more heavily), penalizes cross-tier shifts (matching top notes directly to base notes), and integrates dedicated clone house filters (Lattafa, Armaf, Afnan) to target direct equivalents.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # Default high-end luxury searches
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 11px; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;'>Prestigious Fragrances</h4>", unsafe_allow_html=True)
-    
-    col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
-    query_dupe = "baccarat-rouge-540"
-    if col_btn1.button("Creed Aventus"):
-        query_dupe = "aventus"
-    if col_btn2.button("Baccarat Rouge 540"):
-        query_dupe = "baccarat-rouge-540"
-    if col_btn3.button("Parfums de Marly Althair"):
-        query_dupe = "althair"
-    if col_btn4.button("Tom Ford Lost Cherry"):
-        query_dupe = "lost-cherry"
-        
-    query_search = st.text_input("Or query a specific prestigious model title:", query_dupe)
-    
-    if query_search and dupe_finder:
-        with st.spinner("Executing similarity mapping..."):
-            dupe_df = dupe_finder.find_dupes(query_search, top_n=10)
-            
-        if dupe_df is not None and not dupe_df.empty:
-            query_norm = str(query_search).lower().replace("-", " ")
+    with st.expander("Training molecules"):
+        data = pd.read_csv(SMILES_CSV).merge(pd.read_csv(LABELS_CSV), on="name")
+        st.dataframe(data, hide_index=True, width="stretch", height=360)
+        st.caption("Each SMILES was checked against its known molecular formula. Edit data/sample_smiles.csv and "
+                   "data/odor_labels.csv to add molecules, then retrain.")
+
+    st.subheader("Retrain", anchor=False)
+    st.write("Recomputes descriptors for every training molecule, re-selects features, cross-validates and "
+             "refits the forest. Takes about half a minute.")
+    if st.button("Retrain the model", type="primary", disabled=not PREDICT_AVAILABLE):
+        from pipeline import run_train_pipeline
+        with st.status("Retraining…", expanded=True) as status:
             try:
-                from rapidfuzz import process, fuzz
-                matches = process.extract(query_norm, dupe_finder.df['SearchKey'].tolist(), limit=1, scorer=fuzz.token_set_ratio)
-                best_match_key = matches[0][0]
-                base_idx = dupe_finder.df[dupe_finder.df['SearchKey'] == best_match_key].index[0]
-                base_perfume = dupe_finder.df.iloc[base_idx]
-            except Exception:
-                base_perfume = None
-                
-            if base_perfume is not None:
-                st.markdown(
-                    f"""
-                    <div style="background: transparent; border: 1px solid #22222d; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
-                        <h4 style="margin: 0px 0px 6px 0px; font-family: 'Cormorant Garamond', serif; font-size: 22px; color: #f3d060; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Selected Luxury Fragrance: {str(base_perfume['Perfume']).replace("-", " ").title()} by {str(base_perfume['Brand']).title()}</h4>
-                        <p style="margin:0px 0px 10px 0px; font-family: 'Outfit', sans-serif; font-size:11px; color:#717188; text-transform: uppercase; letter-spacing: 1px;">Demography: <b>{base_perfume['Gender']}</b> | Score: <b>{float(base_perfume['Rating Value']):.2f} Rating</b> | Year: <b>{int(base_perfume['Year']) if pd.notna(base_perfume['Year']) else 'N/A'}</b></p>
-                        <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.6; font-weight: 300;"><b>Olfactive Pyramid:</b> Top ({', '.join(base_perfume['Top'])}) • Heart ({', '.join(base_perfume['Middle'])}) • Base ({', '.join(base_perfume['Base'])})</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            
-            st.markdown("<h3 style='color: #f3d060; font-size: 24px; font-weight: 300; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;'>Olfactive Equivalents</h3>", unsafe_allow_html=True)
-            
-            # Display results in columns
-            col_dupe1, col_dupe2 = st.columns(2)
-            for i, (_, row) in enumerate(dupe_df.iterrows()):
-                target_col = col_dupe1 if i % 2 == 0 else col_dupe2
-                
-                # Fetch full data of the dupe perfume to get notes
-                full_dupe = df_perfumes[df_perfumes['Perfume'] == row['Perfume']].iloc[0]
-                
-                dupe_top = [x.strip() for x in str(full_dupe['Top']).split(',') if pd.notna(full_dupe['Top'])]
-                dupe_mid = [x.strip() for x in str(full_dupe['Middle']).split(',') if pd.notna(full_dupe['Middle'])]
-                dupe_base = [x.strip() for x in str(full_dupe['Base']).split(',') if pd.notna(full_dupe['Base'])]
-                
-                # Highlight overlapping notes with luxury perfume
-                overlap_html = []
-                if base_perfume is not None:
-                    lux_notes = set(base_perfume['Top'] + base_perfume['Middle'] + base_perfume['Base'])
-                    
-                    for layer_name, notes_list, color_class in [("Top", dupe_top, "tier-top"), ("Mid", dupe_mid, "tier-mid"), ("Base", dupe_base, "tier-base")]:
-                        for note in notes_list[:4]:
-                            is_overlap = False
-                            for ln in lux_notes:
-                                if note.strip().lower() in ln or ln in note.strip().lower():
-                                    is_overlap = True
-                                    break
-                            
-                            style_overlap = "color: #d4af37; font-weight: 500;" if is_overlap else "color: #8c8c9e;"
-                            overlap_html.append(f"<span style='font-size: 13.5px; margin-right: 12px; display: inline-block; {style_overlap}'>• {note}</span>")
-                
-                acc_list = [full_dupe[f'mainaccord{k}'] for k in range(1, 6) if pd.notna(full_dupe[f'mainaccord{k}'])]
-                accords_html = "".join([f"<span class='accord-text'>• {a.upper()}</span>" for a in acc_list])
-                
-                card_content = clean_html(f"""
-                <div class="glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                        <div>
-                            <h4 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 500;"><a href="{row['url']}" target="_blank" class="fragrantica-link">{str(row['Perfume']).replace("-", " ").title()}</a></h4>
-                            <p style="margin: 0px; font-family: 'Outfit', sans-serif; font-size: 11px; color: #f3d060; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{str(row['Brand']).upper()}</p>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: end; gap: 4px;">
-                            <span class="rating-pill" style="font-size: 13px;">{row['Similarity (%)']:.1f}% Match</span>
-                            <span class="gender-pill">{float(row['Rating Value']):.2f} Rating ({row['Gender']})</span>
-                        </div>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <div style="font-family: 'Outfit', sans-serif; font-size: 10px; color: #717188; margin-bottom: 8px; font-weight:600; text-transform: uppercase; letter-spacing: 1px;">Olfactive Overlap (Gold denotes exact luxury elements):</div>
-                        <div style="margin-bottom: 12px; line-height: 1.6;">
-                            {"".join(overlap_html) if overlap_html else '<span style="font-size:12px; color:#64748b;">N/A</span>'}
-                        </div>
-                        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #111116;">
-                            {accords_html}
-                        </div>
-                    </div>
-                </div>
-                """)
-                target_col.markdown(card_content, unsafe_allow_html=True)
-        else:
-            st.error(f"Could not locate matching perfumes for '{query_search}'. Please refine your search entry.")
+                new = run_train_pipeline(progress=lambda i, n, msg: status.write(f"{i}/{n} · {msg}"))
+                status.update(label=f"Done. Cross-validated accuracy {new['cv_accuracy']:.0%}.", state="complete")
+            except Exception as e:
+                status.update(label="Retraining failed", state="error")
+                st.exception(e)
+    if not PREDICT_AVAILABLE:
+        st.caption("Retraining needs RDKit and Mordred, which aren't installed here.")
 
-# Page 4: Molecular Odor Predictor
-elif menu == "Molecular Odor Predictor":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>Molecular Odor Predictor</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Decode structural SMILES formulas to predict chemical odor categories.</p>", unsafe_allow_html=True)
-    
-    st.markdown(
-        """
-        <div class="glass-card">
-            <h5 style="margin-top: 0px; color: #f3d060; font-family: 'Outfit', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Molecular Geometry Featurization</h5>
-            <p style="margin: 0px; font-size: 13.5px; line-height: 1.7; color: #a1a1b5; font-weight: 300;">
-                We parse your organic SMILES strings in real-time via RDKit, generating 1,800+ structural, electrostatic, and topological graph descriptors using Mordred. After collinearity pruning, the top 250 mutual information descriptors compile a Random Forest Classifier to output primary raw odor classifications.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # Examples selection
-    st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 11px; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;'>Common Molecules</h4>", unsafe_allow_html=True)
-    
-    col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
-    selected_smiles = "COC1=CC=C(C=C1)C=O" # Vanillin default
-    
-    if col_m1.button("Vanillin (Vanilla)"):
-        selected_smiles = "COC1=CC=C(C=C1)C=O"
-    if col_m2.button("Limonene (Citrus)"):
-        selected_smiles = "C=C(C)CCC1=CC=C(C=C1)C"
-    if col_m3.button("Menthol (Mint)"):
-        selected_smiles = "CC(C)C1CCC(C)CC1O"
-    if col_m4.button("Phenylethyl Alcohol (Rose)"):
-        selected_smiles = "C1=CC=C(C=C1)CCO"
-    if col_m5.button("Alpha-Pinene (Pine)"):
-        selected_smiles = "CC1=CCC2CC1C2(C)C"
-        
-    input_smiles = st.text_input("Or input a custom molecular SMILES string:", selected_smiles)
-    
-    if input_smiles:
-        if not RDKIT_AVAILABLE:
-            st.markdown(
-                """
-                <div class="glass-card" style="border: 1px solid #22222d; text-align: center; padding: 40px 20px;">
-                    <div style="font-size: 40px; margin-bottom: 16px;">🧪</div>
-                    <h4 style="font-family: 'Outfit', sans-serif; color: #d4af37; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Molecular Analysis Unavailable</h4>
-                    <p style="color: #717188; font-size: 13px; line-height: 1.7; max-width: 420px; margin: 0 auto;">
-                        The molecular rendering and odor prediction engine requires <strong>RDKit</strong> and <strong>Mordred</strong>,
-                        which are not available in this cloud environment. Run the app locally to access full SMILES analysis.
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            col_pred1, col_pred2 = st.columns([1, 1])
 
-            with col_pred1:
-                st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Molecular Topology</h4>", unsafe_allow_html=True)
-                svg_text = render_molecule_svg(input_smiles)
-                if svg_text:
-                    st.markdown(f"<div class='mol-container'>{svg_text}</div>", unsafe_allow_html=True)
-                else:
-                    st.error("Invalid SMILES structure. Please verify your organic chemical formula.")
-
-            with col_pred2:
-                st.markdown("<h4 style='font-family: \"Outfit\", sans-serif; font-size: 14px; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; margin-bottom:12px;'>Odor Classifier Output</h4>", unsafe_allow_html=True)
-
-                try:
-                    with st.spinner("Computing high-dimensional descriptors..."):
-                        predicted_class = predict_smiles(input_smiles, models_dir="models")
-
-                    st.markdown(
-                        f"""
-                        <div class="glass-card" style="border: 1px solid #22222d;">
-                            <h5 style="margin: 0px 0px 8px 0px; font-family: 'Outfit', sans-serif; color:#717188; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Predicted Classification</h5>
-                            <div style="font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: #f3d060; text-transform: uppercase; margin-bottom:15px; letter-spacing: 1px;">
-                                {predicted_class}
-                            </div>
-                            <p style="margin:0px; font-size:13.5px; color:#cbd5e1; line-height:1.7; font-weight: 300;">
-                                Our random forest classifier analyzed the 250 high-impact topological and electrostatic molecular descriptors computed for this molecule. The predicted odor classification represents the strongest olfactory group associated with this chemical's specific geometry and orbital properties.
-                            </p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                    mol_obj = Chem.MolFromSmiles(input_smiles)
-                    if mol_obj:
-                        st.markdown("<h5 style='font-family: \"Outfit\", sans-serif; font-size: 13px; color: #cbd5e1; margin-top:15px; text-transform: uppercase; letter-spacing: 1px;'>Properties</h5>", unsafe_allow_html=True)
-                        st.markdown(f"- **Formula:** `{Chem.rdMolDescriptors.CalcMolFormula(mol_obj)}`")
-                        st.markdown(f"- **Mass:** `{Chem.rdMolDescriptors.CalcExactMolWt(mol_obj):.2f} g/mol`")
-                        st.markdown(f"- **Heavy Atoms:** `{mol_obj.GetNumHeavyAtoms()}`")
-                        st.markdown(f"- **Rotatable Bonds:** `{Chem.rdMolDescriptors.CalcNumRotatableBonds(mol_obj)}`")
-
-                except Exception as e:
-                    st.exception(e)
-
-# Page 5: ML Dashboard & Features
-elif menu == "ML Dashboard & Features":
-    st.markdown("<h1 style='margin-bottom: 5px; font-size: 45px; font-weight: 300; text-transform: uppercase; letter-spacing: 1px;'>ML Dashboard & Features</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #717188; margin-bottom: 25px;'>Analyze feature weighting metrics and execute model retraining loops.</p>", unsafe_allow_html=True)
-    
-    col_d1, col_d2 = st.columns([2, 1])
-    
-    with col_d1:
-        st.markdown("<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;'>Topological Descriptor Weightings</h3>", unsafe_allow_html=True)
-        st.markdown("Top 15 molecular descriptors ranked by Mutual Information Score in classifying chemical odors.")
-        
-        # Load feature importance
-        if os.path.exists("data/feature_importance.csv"):
-            importance_df = pd.read_csv("data/feature_importance.csv")
-            top_importance = importance_df.head(15)
-            
-            chart = alt.Chart(top_importance).mark_bar(
-                cornerRadiusTopRight=0,
-                cornerRadiusBottomRight=0,
-                color="#b28b12" # Solid gold bars
-            ).encode(
-                x=alt.X('mi_score:Q', title='Mutual Information Score'),
-                y=alt.Y('feature:N', sort='-x', title='Mordred Descriptor'),
-                tooltip=['feature', 'mi_score']
-            ).properties(
-                height=450
-            ).configure_axis(
-                labelColor='#717188',
-                titleColor='#a1a1b5',
-                grid=False
-            ).configure_view(
-                strokeOpacity=0
-            )
-            
-            st.altair_chart(chart, use_container_width=True)
-        else:
-            st.info("No feature importance data found. Please run the training pipeline first.")
-            
-    with col_d2:
-        st.markdown("<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;'>Hyperparameters</h3>", unsafe_allow_html=True)
-        
-        st.markdown(
-            """
-            <div class="glass-card">
-                <h5 style="margin-top: 0px; font-family: 'Outfit', sans-serif; color: #f3d060; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Odor Estimator Profile</h5>
-                <p style="margin-bottom: 8px; font-size:13.5px; font-weight: 300;"><b>Classifier:</b> Random Forest Classifier</p>
-                <p style="margin-bottom: 8px; font-size:13.5px; font-weight: 300;"><b>Trees:</b> 200 Estimators</p>
-                <p style="margin-bottom: 8px; font-size:13.5px; font-weight: 300;"><b>Selected Features:</b> 250 Descriptors</p>
-                <p style="margin-bottom: 0px; font-size:13.5px; font-weight: 300;"><b>Cross-Val Accuracy:</b> 60.0%</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        st.markdown("<h3 style='color: #f3d060; font-size: 22px; font-weight: 300; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;'>Retraining Loop</h3>", unsafe_allow_html=True)
-        st.markdown("Initiate a comprehensive end-to-end retraining cycle over the olfactive chemistry dataset. This recomputes descriptors, executes mutual information filtering, and fits a clean estimator.")
-        
-        if st.button("Execute Retraining"):
-            with st.spinner("Executing optimization pipeline..."):
-                try:
-                    FINAL_DATASET_CSV = "data/final_dataset.csv"
-                    train_model(FINAL_DATASET_CSV)
-                    st.success("ML Pipeline Retrained and Saved Successfully!")
-                    st.toast("Model saved to models/odor_model.pkl")
-                except Exception as e:
-                    st.error(f"Retraining failed: {e}")
-                    
-        st.markdown("<h3 style='color: #f3d060; font-size: 20px; font-weight: 300; margin-top: 25px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;'>Glossary</h3>", unsafe_allow_html=True)
-        st.markdown(
-            """
-            - **`MW`**: Exact compound molecular weight.
-            - **`LogP`**: Octanol-water partition coefficient representing lipophilicity.
-            - **`nHBDon` / `nHBAcc`**: Absolute counts of Hydrogen Bond Donors & Acceptors.
-            - **`RingCount`**: Total carbon ring formations.
-            - **`nAcid` / `nBase`**: Acidic and basic atom centers.
-            """
-        )
+nav = st.navigation(
+    [
+        st.Page(page_browse, title="Browse", default=True),
+        st.Page(page_search, title="Search", url_path="search"),
+        st.Page(page_alternatives, title="Alternatives", url_path="alternatives"),
+        st.Page(page_predictor, title="Odor predictor", url_path="predict"),
+        st.Page(page_model, title="Model", url_path="model"),
+    ],
+    position="top",
+)
+nav.run()
