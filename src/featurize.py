@@ -1,14 +1,23 @@
-import pandas as pd
 import logging
-import numpy as np
-if not hasattr(np, 'float'):
-    np.float = float
+
+import pandas as pd
 from mordred import Calculator, descriptors
-   
+
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
+_CALC = None
+
+
+def get_calculator():
+    """Build the 2D Mordred calculator once; construction is slow."""
+    global _CALC
+    if _CALC is None:
+        _CALC = Calculator(descriptors, ignore_3D=True)
+    return _CALC
+
+
 def featurize(molecules, output_csv):
-    calc = Calculator(descriptors, ignore_3D=True)
+    calc = get_calculator()
     results = []
 
     for name, mol in molecules:
@@ -20,9 +29,7 @@ def featurize(molecules, output_csv):
             logging.error(f"Error calculating descriptors for {name}: {e}")
 
     df = pd.DataFrame(results)
-    cols = ['name'] + [c for c in df.columns if c != 'name']  # ensure name first
+    cols = ['name'] + [c for c in df.columns if c != 'name']
     df = df[cols]
-    df.fillna(0, inplace=True)
     df.to_csv(output_csv, index=False)
     logging.info(f"Saved {len(df)} molecules to {output_csv}")
-    

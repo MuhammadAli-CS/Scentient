@@ -1,50 +1,94 @@
 name,smiles
-Limonene,C=C(C)CCC1=CC=CC=C1
-Vanillin,COC1=CC=C(C=C1)C=O
-Linalool,CC(C)=CCOC(C)C
-Linalyl acetate,CC(=O)OCC(C)=CCC=C(C)C
-Citral,CC(C)=CCC=C(C)C=O
-Geraniol,C=C(C)CCC=C(C)CO
-Eucalyptol,C1CCC2(CC1)C(CO2)O
-Cinnamaldehyde,C1=CC=C(C=C1)C=O
-Caryophyllene,C1CCC2=C(C1)CCC3(C2CCC=C3)C
+Limonene,CC1=CCC(CC1)C(=C)C
+Citral,CC(C)=CCC/C(C)=C/C=O
+Citronellal,CC(CCC=C(C)C)CC=O
+Octanal,CCCCCCCC=O
+Decanal,CCCCCCCCCC=O
+gamma-Terpinene,CC1=CCC(=CC1)C(C)C
+Nootkatone,CC1CC(=O)C=C2CCC(CC12C)C(C)=C
+Valencene,CC1CCC=C2CCC(CC12C)C(C)=C
+Dihydromyrcenol,CC(CCCC(C)(C)O)C=C
+Linalool,CC(C)=CCCC(C)(O)C=C
+Linalyl acetate,CC(C)=CCCC(C)(OC(C)=O)C=C
+Geraniol,CC(C)=CCC/C(C)=C/CO
+Nerol,CC(C)=CCC/C(C)=C\CO
+Citronellol,CC(CCC=C(C)C)CCO
+Phenylethyl alcohol,OCCc1ccccc1
+Benzyl acetate,CC(=O)OCc1ccccc1
+Hedione,CCCCCC1C(CC(=O)OC)CCC1=O
+Hydroxycitronellal,CC(CCCC(C)(C)O)CC=O
+Lilial,CC(Cc1ccc(cc1)C(C)(C)C)C=O
+Geranyl acetate,CC(C)=CCC/C(C)=C/COC(C)=O
+alpha-Ionone,CC1=CCCC(C)(C)C1/C=C/C(C)=O
+beta-Ionone,CC1=C(/C=C/C(C)=O)C(C)(C)CCC1
+cis-Jasmone,CC/C=C\CC1=C(C)CCC1=O
+Rose oxide,CC1CCOC(C1)C=C(C)C
+Phenethyl acetate,CC(=O)OCCc1ccccc1
+Vanillin,COc1cc(C=O)ccc1O
+Ethyl vanillin,CCOc1cc(C=O)ccc1O
+Coumarin,O=C1C=Cc2ccccc2O1
+Ethyl maltol,CCc1occc(=O)c1O
+Maltol,Cc1occc(=O)c1O
+Furaneol,CC1OC(C)=C(O)C1=O
+Heliotropin,O=Cc1ccc2OCOc2c1
+Anisaldehyde,COc1ccc(C=O)cc1
+Benzaldehyde,O=Cc1ccccc1
+Cedrol,CC1CCC2C13CCC(C)(O)C(C3)C2(C)C
+Iso E Super,CC(=O)C1(C)CC2=C(CCCC2(C)C)CC1C
+beta-Caryophyllene,CC1=CCCC(=C)C2CC(C)(C)C2CC1
+Cashmeran,CC1C(C)(C)C2=C(C(=O)CCC2)C1(C)C
+alpha-Santalol,CC12C3CC(CC31)C2(C)CCC=C(C)CO
+alpha-Pinene,CC1=CCC2CC1C2(C)C
+beta-Pinene,C=C1CCC2CC1C2(C)C
+Guaiacol,COc1ccccc1O
+Ambroxan,CC1(C)CCCC2(C)C1CCC1(C)OCCC12
+Benzyl benzoate,O=C(OCc1ccccc1)c1ccccc1
+Benzyl salicylate,O=C(OCc1ccccc1)c1ccccc1O
+Cinnamyl alcohol,OC/C=C/c1ccccc1
+Benzyl cinnamate,O=C(/C=C/c1ccccc1)OCc1ccccc1
+Methyl cinnamate,COC(=O)/C=C/c1ccccc1
+Galaxolide,CC1COCc2cc3c(cc21)C(C)(C)C(C)C3(C)C
+Muscone,CC1CCCCCCCCCCCCC(=O)C1
+Exaltolide,O=C1CCCCCCCCCCCCCCO1
+Ethylene brassylate,O=C1CCCCCCCCCCCC(=O)OCCO1
+Habanolide,O=C1CCCCCCCCCC=CCCCO1
+Tonalide,CC(=O)c1cc2c(cc1C)C(C)(C)C(C)CC2(C)C
+Musk ketone,CC(=O)c1c(C)c([N+](=O)[O-])c(C(C)(C)C)c([N+](=O)[O-])c1C
+Musk xylene,Cc1c([N+](=O)[O-])c(C)c([N+](=O)[O-])c(C(C)(C)C)c1[N+](=O)[O-]
+Eugenol,COc1cc(CC=C)ccc1O
+Isoeugenol,COc1cc(/C=C/C)ccc1O
+Cinnamaldehyde,O=C/C=C/c1ccccc1
+Anethole,COc1ccc(/C=C/C)cc1
+Cuminaldehyde,CC(C)c1ccc(C=O)cc1
+Methyl eugenol,COc1ccc(CC=C)cc1OC
+Isoamyl acetate,CC(C)CCOC(C)=O
+Ethyl butyrate,CCCC(=O)OCC
+Ethyl 2-methylbutyrate,CCC(C)C(=O)OCC
+gamma-Decalactone,CCCCCCC1CCC(=O)O1
+gamma-Undecalactone,CCCCCCCC1CCC(=O)O1
+Raspberry ketone,CC(=O)CCc1ccc(O)cc1
+Allyl hexanoate,C=CCOC(=O)CCCCC
+Hexyl acetate,CCCCCCOC(C)=O
+Methyl anthranilate,COC(=O)c1ccccc1N
+beta-Damascone,C/C=C/C(=O)C1=C(C)CCCC1(C)C
+Fructone,CCOC(=O)CC1(C)OCCO1
 Menthol,CC(C)C1CCC(C)CC1O
-Isoamyl acetate,CC(C)CCOC(=O)C
-Phenylethyl alcohol,C1=CC=C(C=C1)CCO
-Coumarin,C1=CC=C2C(=O)OC=C2C=C1
-Methyl anthranilate,C1=CC=C(C=C1)NC(=O)OC
-Alpha-pinene,CC1=CCC2CC1C2(C)C
-Beta-pinene,CC1=CCC2C(C1)C2(C)C
-Myrcene,CC(=CC=C(C)C)C=C
-Camphor,CC1(C2CCC1(C)C2)C=O
-Eugenol,COC1=CC=C(C=C1)C=C
-Anethole,C=CC1=CC(OC)=CC=C1
-Benzyl acetate,C1=CC=C(C=C1)COC(=O)C
-Phenylacetaldehyde,C1=CC=C(C=C1)CC=O
-Isoeugenol,COC1=CC=C(C=C1)C=CC
-Thymol,CC(C)C1=CC=C(C=C1)O
-Carvone,CC1=CCC(=O)C=C1C
-Citronellal,CC(C)CC=C(C)C=O
-Hedione,CC(=O)OCCOC(=O)CC(C)C
-Nerol,C=C(C)CCC=C(C)CO
-Geranyl acetate,CC(=O)OCC=C(C)CCC=C(C)C
-Phenethyl acetate,C1=CC=C(C=C1)CCOC(=O)C
-Indole,C1=CC=C2C(=C1)NC=C2
-Ionone,CC1=CC(=O)C=C(C)C1C
-Beta-ionone,CC1=CC(=O)C=C(C)C1C
-Ambroxan,C1CCC2(CC1)C(CO2)O
-Iso E Super,CC1CCC(C1)(C(C)(C)OC)C
-Cashmeran,CC1CCC(C1)(C(C)OC)C
-Galaxolide,CC1CCC(C1)(C(C)(C)OCC)C
-Heliotropin,C1=CC=C(C=C1)C=O
-Coumarone,C1=CC=C(C=C1)O
-Ethyl maltol,C1=CC(=O)OC(C)C=C1
-Alpha-ionone,CC1=CC(=O)C=C(C)C1C
-Beta-damascone,CC1=CC(=O)C=C(C)C1C
-Lactone,C1CCOC1
-Isoamyl alcohol,CC(C)CCO
-Phenylpropanol,C1=CC=C(C=C1)CCCO
-Ethyl vanillin,CCOC1=CC=C(C=C1)C=O
-Musk ketone,CC(C)=CC(=O)C(C)(C)C
-Musk ambrette,C1=CC(=CC=C1OC)C(C)(C)O
-Tonka bean,C1=CC=C(C=C1)C=O
+Menthone,CC(C)C1CCC(C)CC1=O
+Carvone,CC1=CCC(CC1=O)C(C)=C
+Eucalyptol,CC12CCC(CC1)C(C)(C)O2
+Camphor,CC1(C)C2CCC1(C)C(=O)C2
+Methyl salicylate,COC(=O)c1ccccc1O
+Pulegone,CC1CCC(=C(C)C)C(=O)C1
+cis-3-Hexenol,CC/C=C\CCO
+cis-3-Hexenyl acetate,CC/C=C\CCOC(C)=O
+Hexanal,CCCCCC=O
+trans-2-Hexenal,CCC/C=C/C=O
+2-Isobutyl-3-methoxypyrazine,COc1nccnc1CC(C)C
+Thymol,Cc1ccc(C(C)C)c(O)c1
+Carvacrol,Cc1ccc(C(C)C)cc1O
+Estragole,C=CCc1ccc(OC)cc1
+Indole,c1ccc2[nH]ccc2c1
+Skatole,Cc1c[nH]c2ccccc12
+Civetone,O=C1CCCCCCC/C=C\CCCCCCC1
+p-Cresol,Cc1ccc(O)cc1
+Butyric acid,CCCC(=O)O

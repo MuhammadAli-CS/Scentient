@@ -36,8 +36,9 @@ ENV/
 *.hdf5
 *.onnx
 
-# Streamlit
-.streamlit/
+# Streamlit (keep the shared theme, ignore local secrets)
+.streamlit/*
+!.streamlit/config.toml
 
 # Logs & cache
 *.log

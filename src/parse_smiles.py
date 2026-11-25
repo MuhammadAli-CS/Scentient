@@ -13,7 +13,7 @@ def parse_smiles(csv_path):
         smiles = row['smiles']
         mol = Chem.MolFromSmiles(smiles)
         if mol:
-            molecules.append((row['name'], mol))
+            molecules.append((name, mol))
         else:
             logging.warning(f"Invalid SMILES at row {index}: {row['smiles']}")
     return molecules
